@@ -1,0 +1,671 @@
+<title>Bike Lanes, Blocked — Boston 311 Data</title>
+<style>
+  @font-face {
+    font-family: "Oswald";
+    src: url(data:font/ttf;base64,__FONT_B64__) format("truetype-variations");
+    font-weight: 200 700;
+    font-display: swap;
+  }
+
+  :root {
+    color-scheme: light;
+    --bg: #f4f3ee;
+    --surface: #ffffff;
+    --surface-2: #eeece4;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --ink-muted: #898781;
+    --border: rgba(11,11,11,0.10);
+    --grid: #e1e0d9;
+    --baseline: #c3c2b7;
+    --accent: #1baf7a;
+    --accent-ink: #0b3d29;
+    --cat-possible: #eb6834;
+    --cat-other: #2a78d6;
+    --status-good: #0ca30c;
+    --status-warning: #fab219;
+    --status-critical: #d03b3b;
+    --chart-surface: #fcfcfb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --bg: #13150f;
+      --surface: #1b1d17;
+      --surface-2: #22241d;
+      --ink: #ffffff;
+      --ink-2: #c3c2b7;
+      --ink-muted: #8f8d86;
+      --border: rgba(255,255,255,0.10);
+      --grid: #2c2c2a;
+      --baseline: #383835;
+      --accent: #199e70;
+      --accent-ink: #bdf3da;
+      --cat-possible: #d95926;
+      --cat-other: #3987e5;
+      --status-good: #0ca30c;
+      --status-warning: #fab219;
+      --status-critical: #e66767;
+      --chart-surface: #1a1a19;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #13150f;
+    --surface: #1b1d17;
+    --surface-2: #22241d;
+    --ink: #ffffff;
+    --ink-2: #c3c2b7;
+    --ink-muted: #8f8d86;
+    --border: rgba(255,255,255,0.10);
+    --grid: #2c2c2a;
+    --baseline: #383835;
+    --accent: #199e70;
+    --accent-ink: #bdf3da;
+    --cat-possible: #d95926;
+    --cat-other: #3987e5;
+    --status-good: #0ca30c;
+    --status-warning: #fab219;
+    --status-critical: #e66767;
+    --chart-surface: #1a1a19;
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --bg: #f4f3ee;
+    --surface: #ffffff;
+    --surface-2: #eeece4;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --ink-muted: #898781;
+    --border: rgba(11,11,11,0.10);
+    --grid: #e1e0d9;
+    --baseline: #c3c2b7;
+    --accent: #1baf7a;
+    --accent-ink: #0b3d29;
+    --cat-possible: #eb6834;
+    --cat-other: #2a78d6;
+    --status-good: #0ca30c;
+    --status-warning: #fab219;
+    --status-critical: #d03b3b;
+    --chart-surface: #fcfcfb;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.55 -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px 80px; }
+
+  h1, h2, h3, .eyebrow, .stat-value { font-family: "Oswald", -apple-system, sans-serif; }
+
+  /* ---- Masthead ---- */
+  .masthead {
+    padding: 48px 0 32px;
+    border-bottom: 3px solid var(--accent);
+  }
+  .eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--accent);
+    margin: 0 0 10px;
+  }
+  h1 {
+    font-size: clamp(34px, 5vw, 54px);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.02;
+    margin: 0 0 14px;
+    text-wrap: balance;
+    max-width: 16ch;
+  }
+  .dek {
+    font-size: 17px;
+    color: var(--ink-2);
+    max-width: 62ch;
+    margin: 0 0 18px;
+  }
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 22px;
+    font-size: 13px;
+    color: var(--ink-muted);
+  }
+  .meta-row b { color: var(--ink-2); font-weight: 600; }
+
+  /* ---- Sections ---- */
+  section { padding: 44px 0; border-bottom: 1px solid var(--border); }
+  section:last-of-type { border-bottom: none; }
+  .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+  h2 { font-size: 25px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+  .section-note { font-size: 13.5px; color: var(--ink-muted); margin: 6px 0 0; max-width: 68ch; }
+
+  /* ---- Stat tiles ---- */
+  .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  @media (max-width: 900px) { .stat-row { grid-template-columns: repeat(2, 1fr); } }
+  .stat-tile {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 20px 18px;
+  }
+  .stat-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-muted); margin: 0 0 10px; }
+  .stat-value { font-size: 38px; font-weight: 600; line-height: 1; margin: 0 0 8px; font-variant-numeric: tabular-nums; }
+  .stat-value.accent { color: var(--accent); }
+  .stat-value.critical { color: var(--status-critical); }
+  .stat-sub { font-size: 13px; color: var(--ink-2); }
+
+  /* ---- Buttons ---- */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--surface); color: var(--ink);
+    border: 1px solid var(--border); border-radius: 7px;
+    padding: 7px 13px; font-size: 13px; font-weight: 500;
+    cursor: pointer; white-space: nowrap;
+    font-family: inherit;
+  }
+  .btn:hover { background: var(--surface-2); }
+  .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .btn-accent { background: var(--accent); color: #06231a; border-color: transparent; font-weight: 600; }
+  .btn-accent:hover { filter: brightness(1.05); }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* ---- Comparison chart (three small-multiple bars) ---- */
+  .compare-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media (max-width: 800px) { .compare-grid { grid-template-columns: 1fr; } }
+  .compare-card {
+    background: var(--chart-surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 18px 8px;
+  }
+  .compare-card h3 { font-size: 15px; font-weight: 600; margin: 0 0 3px; }
+  .compare-card .n { font-size: 12px; color: var(--ink-muted); margin: 0 0 14px; font-variant-numeric: tabular-nums; }
+  .metric-bar-group { margin-bottom: 16px; }
+  .metric-bar-label { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--ink-2); margin-bottom: 5px; }
+  .metric-bar-label .v { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .metric-bar-track { height: 10px; background: var(--grid); border-radius: 5px; overflow: hidden; }
+  .metric-bar-fill { height: 100%; border-radius: 5px; }
+
+  /* ---- Horizontal bar chart ---- */
+  .hbar-chart { display: flex; flex-direction: column; gap: 7px; }
+  .hbar-row { display: grid; grid-template-columns: 148px 1fr 52px; align-items: center; gap: 10px; }
+  .hbar-label { font-size: 13px; color: var(--ink-2); text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hbar-track { height: 16px; background: var(--grid); border-radius: 3px; position: relative; }
+  .hbar-fill { height: 100%; border-radius: 3px; min-width: 2px; }
+  .hbar-val { font-size: 12.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  @media (max-width: 560px) {
+    .hbar-row { grid-template-columns: 1fr; gap: 3px; }
+    .hbar-label { text-align: left; }
+    .hbar-val { text-align: right; }
+  }
+
+  /* ---- Weekly trend ---- */
+  .trend-wrap { background: var(--chart-surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+  .trend-bars { display: flex; align-items: flex-end; gap: 4px; height: 140px; margin-bottom: 6px; }
+  .trend-bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; position: relative; }
+  .trend-bar { width: 100%; max-width: 34px; border-radius: 3px 3px 0 0; background: var(--accent); }
+  .trend-axis { display: flex; gap: 4px; }
+  .trend-axis span { flex: 1; text-align: center; font-size: 10.5px; color: var(--ink-muted); }
+  .trend-line-wrap { margin-top: 22px; }
+  .trend-line-label { font-size: 12px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+
+  /* ---- Tables ---- */
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-muted); font-weight: 600; cursor: pointer; user-select: none; }
+  th:hover { color: var(--ink); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+  .table-scroll table { min-width: 720px; }
+  td.wrap-cell { white-space: normal; max-width: 340px; }
+
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 20px; font-size: 11.5px; font-weight: 600; }
+  .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; }
+  .pill-open { background: color-mix(in srgb, var(--status-critical) 16%, transparent); color: var(--status-critical); }
+  .pill-open::before { background: var(--status-critical); }
+  .pill-closed { background: color-mix(in srgb, var(--status-good) 16%, transparent); color: var(--status-good); }
+  .pill-closed::before { background: var(--status-good); }
+  .tag { display: inline-flex; padding: 2px 8px; border-radius: 5px; font-size: 11px; font-weight: 600; }
+  .tag-confirmed { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent-ink); }
+  .tag-possible { background: color-mix(in srgb, var(--cat-possible) 18%, transparent); color: var(--cat-possible); }
+
+  .table-toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+  .search-input {
+    flex: 1; min-width: 200px; padding: 8px 12px; border-radius: 7px;
+    border: 1px solid var(--border); background: var(--surface); color: var(--ink); font-size: 13.5px;
+    font-family: inherit;
+  }
+  .search-input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .pager { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-size: 13px; color: var(--ink-2); }
+
+  /* ---- Tooltip ---- */
+  #tooltip {
+    position: fixed; pointer-events: none; z-index: 50;
+    background: var(--ink); color: var(--bg);
+    font-size: 12.5px; padding: 6px 10px; border-radius: 6px;
+    max-width: 260px; opacity: 0; transition: opacity 0.08s;
+  }
+  :root[data-theme="dark"] #tooltip, @media (prefers-color-scheme: dark) { }
+
+  /* ---- Footer ---- */
+  footer { padding: 40px 0 20px; font-size: 13px; color: var(--ink-muted); }
+  footer a { color: var(--ink-2); }
+  footer .cols { display: grid; grid-template-columns: 2fr 1fr; gap: 30px; }
+  @media (max-width: 800px) { footer .cols { grid-template-columns: 1fr; } }
+  footer h4 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-2); margin: 0 0 8px; }
+  footer ul { margin: 0; padding-left: 18px; }
+  footer li { margin-bottom: 6px; }
+
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div id="tooltip"></div>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <p class="eyebrow">Boston Open Data · 311 Service Requests</p>
+    <h1>Bike Lanes, Blocked</h1>
+    <p class="dek">Every 311 complaint about a vehicle in a Boston bike lane, cross-checked two independent ways — what people wrote, and where they stood — and compared against how the city handles everything else in the same queue.</p>
+    <div class="meta-row" id="meta-row"></div>
+  </div>
+
+  <section id="headline">
+    <div class="section-head">
+      <h2>The headline numbers</h2>
+    </div>
+    <div class="stat-row" id="stat-tiles"></div>
+  </section>
+
+  <section id="comparison">
+    <div class="section-head">
+      <div>
+        <h2>Confirmed vs. Possible vs. everything else</h2>
+        <p class="section-note">Three mutually exclusive groups: <b>Confirmed</b> (the complaint's own text names a bike lane), <b>Possible</b> (no such text, but the location sits within 15m of a mapped bike lane), and <b>Other</b> (the rest of the same Illegal Parking / Abandoned Vehicle / Bicycle Issues / Abandoned Bicycle pool). Two independent detection methods, same result.</p>
+      </div>
+      <div class="btn-row">
+        <button class="btn" data-csv="resolution_time_comparison">Download CSV</button>
+      </div>
+    </div>
+    <div class="compare-grid" id="compare-grid"></div>
+  </section>
+
+  <section id="trend">
+    <div class="section-head">
+      <div>
+        <h2>Weekly volume &amp; closure rate</h2>
+        <p class="section-note">Confirmed + Possible bike lane blocking incidents, by week requested.</p>
+      </div>
+      <div class="btn-row">
+        <button class="btn" data-csv="bike_lane_weekly_trend">Download CSV</button>
+      </div>
+    </div>
+    <div class="trend-wrap">
+      <div class="trend-bars" id="trend-bars"></div>
+      <div class="trend-axis" id="trend-axis"></div>
+      <div class="trend-line-wrap">
+        <div class="trend-line-label">Share closed, per week</div>
+        <svg id="trend-line" width="100%" height="70" style="display:block;"></svg>
+      </div>
+    </div>
+  </section>
+
+  <section id="hotspots">
+    <div class="section-head">
+      <div>
+        <h2>Where it's happening</h2>
+        <p class="section-note">Top streets and neighborhoods by combined Confirmed + Possible incident count.</p>
+      </div>
+      <div class="btn-row">
+        <button class="btn" data-csv="bike_lane_street_hotspots">Streets CSV</button>
+        <button class="btn" data-csv="bike_lane_hotspots">Neighborhoods CSV</button>
+      </div>
+    </div>
+    <div class="compare-grid" style="grid-template-columns: 1fr 1fr;">
+      <div>
+        <h3 style="font-size:14px;margin:0 0 12px;color:var(--ink-2);">Top streets</h3>
+        <div class="hbar-chart" id="street-bars"></div>
+      </div>
+      <div>
+        <h3 style="font-size:14px;margin:0 0 12px;color:var(--ink-2);">Top neighborhoods</h3>
+        <div class="hbar-chart" id="neighborhood-bars"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="categories">
+    <div class="section-head">
+      <div>
+        <h2>All tracked categories</h2>
+        <p class="section-note">The full scope this dataset covers, before splitting out bike lane blocking specifically.</p>
+      </div>
+      <div class="btn-row">
+        <button class="btn" data-csv="category_summary">Download CSV</button>
+      </div>
+    </div>
+    <div class="table-scroll">
+      <table id="category-table"></table>
+    </div>
+  </section>
+
+  <section id="raw-data">
+    <div class="section-head">
+      <div>
+        <h2>Every flagged record</h2>
+        <p class="section-note">All Confirmed + Possible bike lane blocking requests. Click a column to sort; search filters street, neighborhood, and description.</p>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-accent" data-csv="bike_lane_records">Download full CSV</button>
+        <button class="btn" id="download-json">Download JSON</button>
+      </div>
+    </div>
+    <div class="table-toolbar">
+      <input class="search-input" id="raw-search" type="text" placeholder="Search street, neighborhood, description…">
+    </div>
+    <div class="table-scroll">
+      <table id="raw-table"></table>
+    </div>
+    <div class="pager">
+      <button class="btn" id="raw-prev">← Prev</button>
+      <span id="raw-page-info"></span>
+      <button class="btn" id="raw-next">Next →</button>
+    </div>
+  </section>
+
+  <footer>
+    <div class="cols">
+      <div>
+        <h4>Methodology &amp; caveats</h4>
+        <ul>
+          <li><b>Confirmed</b> is a text match on the complaint description (bike/bicycle/cyclist/cycling + lane/path/pathway, or "bikeway") — not a verified determination.</li>
+          <li><b>Possible</b> is geo-proximity only (within 15m of Boston's official on-street bike lane network) — a broader, lower-precision signal than Confirmed; some fraction of it is ordinary parking complaints that happen to be near a bike lane street.</li>
+          <li>Street/neighborhood/ward names come from resolving each request's coordinates against Boston's bike lane network and a bulk 311 export — a small number of records may show as "Unknown" or lack a ward if no match was found.</li>
+          <li>Boston is mid-migration to a new 311 backend (started Oct 2025, expected complete by mid-2026); some service types may be inconsistently represented between systems during this period.</li>
+        </ul>
+      </div>
+      <div>
+        <h4>Sources</h4>
+        <ul>
+          <li><a href="https://311.boston.gov/open311/v2/requests.json" target="_blank" rel="noopener">Boston 311 Open311 API</a></li>
+          <li><a href="https://data.boston.gov/dataset/311-service-requests" target="_blank" rel="noopener">311 Service Requests (Analyze Boston)</a></li>
+          <li><a href="https://data.boston.gov/dataset/existing-bike-network-2024" target="_blank" rel="noopener">Existing Bike Network 2024 (Analyze Boston)</a></li>
+        </ul>
+        <p id="footer-generated" style="margin-top:14px;"></p>
+      </div>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+const DATA = __DATA_JSON__;
+
+const fmt = (n) => n == null ? "—" : Number(n).toLocaleString();
+const fmt1 = (n) => n == null ? "—" : Number(n).toFixed(1);
+const pct = (n) => n == null ? "—" : Number(n).toFixed(1) + "%";
+
+function tooltip(el, text) {
+  const tip = document.getElementById("tooltip");
+  el.addEventListener("mousemove", (e) => {
+    tip.style.left = (e.clientX + 14) + "px";
+    tip.style.top = (e.clientY + 14) + "px";
+  });
+  el.addEventListener("mouseenter", () => { tip.textContent = text; tip.style.opacity = 1; });
+  el.addEventListener("mouseleave", () => { tip.style.opacity = 0; });
+}
+
+function downloadText(filename, text, mime) {
+  const blob = new Blob([text], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+document.querySelectorAll("[data-csv]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const key = btn.dataset.csv;
+    downloadText(key + ".csv", DATA[key].csv, "text/csv");
+  });
+});
+document.getElementById("download-json").addEventListener("click", () => {
+  downloadText("bike_lane_records.json", JSON.stringify(DATA.bike_lane_records.rows, null, 2), "application/json");
+});
+
+// ---- Meta row ----
+(function renderMeta() {
+  const gen = new Date(DATA.generated_at);
+  document.getElementById("meta-row").innerHTML =
+    `<span><b>Updated</b> ${gen.toLocaleDateString(undefined, {year:"numeric", month:"long", day:"numeric"})}</span>` +
+    `<span><b>Refresh</b> daily</span>` +
+    `<span><b>Scope</b> Illegal Parking · Abandoned Vehicle · Bicycle Issues · Abandoned Bicycle</span>`;
+  document.getElementById("footer-generated").textContent =
+    "Generated " + gen.toLocaleString();
+})();
+
+// ---- Stat tiles ----
+(function renderStats() {
+  const cmp = DATA.resolution_time_comparison.rows;
+  const confirmed = cmp.find(r => r.request_group === "Confirmed bike lane blocking");
+  const possible = cmp.find(r => r.request_group === "Possible bike lane blocking");
+  const other = cmp.find(r => r.request_group === "Other Parking/Vehicle/Bicycle Requests");
+  const totalFlagged = confirmed.closed_count + confirmed.open_count + possible.closed_count + possible.open_count;
+  const closedRatio = (confirmed.pct_closed / other.pct_closed);
+
+  const tiles = [
+    ["Flagged incidents", fmt(totalFlagged), "Confirmed + Possible, all time", "accent"],
+    ["Confirmed closure rate", pct(confirmed.pct_closed), `vs. ${pct(other.pct_closed)} for other requests`, "critical"],
+    ["Confirmed on-time rate", pct(confirmed.pct_on_time), `vs. ${pct(other.pct_on_time)} for other requests`, "critical"],
+    ["Closes less often by", (closedRatio*100).toFixed(0) + "%", "of the baseline closure rate", "accent"],
+  ];
+  document.getElementById("stat-tiles").innerHTML = tiles.map(([label, val, sub, cls]) =>
+    `<div class="stat-tile"><p class="stat-label">${label}</p><p class="stat-value ${cls}">${val}</p><p class="stat-sub">${sub}</p></div>`
+  ).join("");
+})();
+
+// ---- Comparison small multiples ----
+(function renderCompare() {
+  const cmp = DATA.resolution_time_comparison.rows;
+  const order = ["Confirmed bike lane blocking", "Possible bike lane blocking", "Other Parking/Vehicle/Bicycle Requests"];
+  const colors = { "Confirmed bike lane blocking": "var(--accent)", "Possible bike lane blocking": "var(--cat-possible)", "Other Parking/Vehicle/Bicycle Requests": "var(--cat-other)" };
+  const short = { "Confirmed bike lane blocking": "Confirmed", "Possible bike lane blocking": "Possible", "Other Parking/Vehicle/Bicycle Requests": "Other requests" };
+
+  const html = order.map(key => {
+    const r = cmp.find(x => x.request_group === key);
+    const total = r.closed_count + r.open_count;
+    const color = colors[key];
+    return `<div class="compare-card">
+      <h3>${short[key]}</h3>
+      <p class="n">${fmt(total)} requests</p>
+      <div class="metric-bar-group">
+        <div class="metric-bar-label"><span>Closed</span><span class="v">${pct(r.pct_closed)}</span></div>
+        <div class="metric-bar-track"><div class="metric-bar-fill" style="width:${r.pct_closed}%;background:${color};"></div></div>
+      </div>
+      <div class="metric-bar-group">
+        <div class="metric-bar-label"><span>On time (city SLA)</span><span class="v">${pct(r.pct_on_time)}</span></div>
+        <div class="metric-bar-track"><div class="metric-bar-fill" style="width:${r.pct_on_time}%;background:${color};"></div></div>
+      </div>
+      <div class="metric-bar-group" style="margin-bottom:8px;">
+        <div class="metric-bar-label"><span>Median hours to close</span><span class="v">${fmt1(r.median_hours_to_close)}h</span></div>
+      </div>
+    </div>`;
+  }).join("");
+  document.getElementById("compare-grid").innerHTML = html;
+})();
+
+// ---- Weekly trend ----
+(function renderTrend() {
+  const rows = DATA.bike_lane_weekly_trend.rows;
+  const maxTotal = Math.max(...rows.map(r => r.total_requests));
+  const barsEl = document.getElementById("trend-bars");
+  const axisEl = document.getElementById("trend-axis");
+
+  barsEl.innerHTML = rows.map(r => {
+    const h = Math.max(2, (r.total_requests / maxTotal) * 100);
+    return `<div class="trend-bar-col"><div class="trend-bar" style="height:${h}%;" data-week="${r.week_start}" data-total="${r.total_requests}" data-closed="${r.closed_requests}"></div></div>`;
+  }).join("");
+  axisEl.innerHTML = rows.map(r => `<span>${new Date(r.week_start).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</span>`).join("");
+
+  barsEl.querySelectorAll(".trend-bar").forEach(el => {
+    tooltip(el, `Week of ${new Date(el.dataset.week).toLocaleDateString()}: ${el.dataset.total} requests, ${el.dataset.closed} closed`);
+  });
+
+  // pct_closed line
+  const svg = document.getElementById("trend-line");
+  const w = 1000, h = 70, pad = 6;
+  const n = rows.length;
+  const stepX = (w - pad*2) / (n - 1 || 1);
+  const points = rows.map((r, i) => {
+    const x = pad + i * stepX;
+    const y = pad + (1 - r.pct_closed/100) * (h - pad*2);
+    return [x, y];
+  });
+  const path = points.map((p,i) => (i===0?"M":"L") + p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ");
+  const gridLines = [0,25,50,75,100].map(v => {
+    const y = pad + (1 - v/100) * (h - pad*2);
+    return `<line x1="${pad}" y1="${y}" x2="${w-pad}" y2="${y}" stroke="var(--grid)" stroke-width="1"/>`;
+  }).join("");
+  const dots = points.map((p,i) => `<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="var(--accent)" data-i="${i}"></circle>`).join("");
+  svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  svg.innerHTML = gridLines + `<path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2"/>` + dots;
+
+  svg.querySelectorAll("circle").forEach(c => {
+    const r = rows[+c.dataset.i];
+    tooltip(c, `Week of ${new Date(r.week_start).toLocaleDateString()}: ${pct(r.pct_closed)} closed`);
+  });
+})();
+
+// ---- Horizontal bar charts ----
+function renderHBar(containerId, rows, labelKey, valueKey, color, max_n) {
+  const top = rows.slice(0, max_n);
+  const maxVal = Math.max(...top.map(r => r[valueKey]));
+  const el = document.getElementById(containerId);
+  el.innerHTML = top.map(r => {
+    const w = Math.max(2, (r[valueKey] / maxVal) * 100);
+    return `<div class="hbar-row">
+      <div class="hbar-label" title="${r[labelKey]}">${r[labelKey] || "Unknown"}</div>
+      <div class="hbar-track"><div class="hbar-fill" style="width:${w}%;background:${color};"></div></div>
+      <div class="hbar-val">${fmt(r[valueKey])}</div>
+    </div>`;
+  }).join("");
+}
+
+(function renderHotspots() {
+  const streets = DATA.bike_lane_street_hotspots.rows
+    .reduce((acc, r) => { acc[r.street] = (acc[r.street]||0) + r.request_count; return acc; }, {});
+  const streetRows = Object.entries(streets).map(([street, request_count]) => ({street, request_count}))
+    .sort((a,b) => b.request_count - a.request_count);
+  renderHBar("street-bars", streetRows, "street", "request_count", "var(--accent)", 10);
+
+  const neigh = DATA.bike_lane_hotspots.rows
+    .reduce((acc, r) => { acc[r.neighborhood] = (acc[r.neighborhood]||0) + r.request_count; return acc; }, {});
+  const neighRows = Object.entries(neigh).map(([neighborhood, request_count]) => ({neighborhood, request_count}))
+    .sort((a,b) => b.request_count - a.request_count);
+  renderHBar("neighborhood-bars", neighRows, "neighborhood", "request_count", "var(--cat-other)", 10);
+})();
+
+// ---- Category table ----
+(function renderCategoryTable() {
+  const rows = DATA.category_summary.rows;
+  const thead = `<thead><tr><th>Category</th><th class="num">Total</th><th class="num">Open</th><th class="num">Closed</th><th class="num">% Open</th></tr></thead>`;
+  const tbody = "<tbody>" + rows.map(r => {
+    const cls = r.pct_open > 50 ? "pill-open" : "pill-closed";
+    return `<tr><td>${r.service_name}</td><td class="num">${fmt(r.total_requests)}</td><td class="num">${fmt(r.open_requests)}</td><td class="num">${fmt(r.closed_requests)}</td>
+      <td class="num"><span class="pill ${cls}">${pct(r.pct_open)}</span></td></tr>`;
+  }).join("") + "</tbody>";
+  document.getElementById("category-table").innerHTML = thead + tbody;
+})();
+
+// ---- Raw data table ----
+(function rawTable() {
+  const allRows = DATA.bike_lane_records.rows;
+  let filtered = allRows;
+  let sortKey = "requested_datetime";
+  let sortDir = -1;
+  let page = 0;
+  const pageSize = 50;
+
+  const cols = [
+    { key: "status", label: "Status" },
+    { key: "service_name", label: "Category" },
+    { key: "flag", label: "Flag" },
+    { key: "nearest_bike_lane_street", label: "Street" },
+    { key: "neighborhood", label: "Neighborhood" },
+    { key: "requested_datetime", label: "Requested" },
+    { key: "distance_to_bike_lane_m", label: "Dist (m)", num: true },
+    { key: "description", label: "Description" },
+  ];
+
+  function apply() {
+    const q = document.getElementById("raw-search").value.trim().toLowerCase();
+    filtered = allRows.filter(r => !q ||
+      (r.nearest_bike_lane_street||"").toLowerCase().includes(q) ||
+      (r.neighborhood||"").toLowerCase().includes(q) ||
+      (r.address||"").toLowerCase().includes(q) ||
+      (r.description||"").toLowerCase().includes(q));
+    filtered = filtered.slice().sort((a,b) => {
+      let av = a[sortKey], bv = b[sortKey];
+      if (av == null) av = "";
+      if (bv == null) bv = "";
+      if (av < bv) return -1 * sortDir;
+      if (av > bv) return 1 * sortDir;
+      return 0;
+    });
+    page = 0;
+    render();
+  }
+
+  function render() {
+    const start = page * pageSize;
+    const pageRows = filtered.slice(start, start + pageSize);
+    const thead = "<thead><tr>" + cols.map(c =>
+      `<th class="${c.num?'num':''}" data-key="${c.key}">${c.label}${sortKey===c.key ? (sortDir===1?' ▲':' ▼') : ''}</th>`
+    ).join("") + "</tr></thead>";
+    const tbody = "<tbody>" + pageRows.map(r => {
+      const pill = r.status === "open" ? `<span class="pill pill-open">Open</span>` : `<span class="pill pill-closed">Closed</span>`;
+      const flag = r.is_bike_lane_blocking ? `<span class="tag tag-confirmed">Confirmed</span>` : `<span class="tag tag-possible">Possible</span>`;
+      const desc = (r.description || "").slice(0, 90) + ((r.description||"").length > 90 ? "…" : "");
+      return `<tr>
+        <td>${pill}</td>
+        <td>${r.service_name}</td>
+        <td>${flag}</td>
+        <td>${r.nearest_bike_lane_street || "—"}</td>
+        <td>${r.neighborhood || "—"}</td>
+        <td>${r.requested_datetime ? new Date(r.requested_datetime).toLocaleDateString() : "—"}</td>
+        <td class="num">${r.distance_to_bike_lane_m != null ? r.distance_to_bike_lane_m : "—"}</td>
+        <td class="wrap-cell" title="${(r.description||"").replace(/"/g,'&quot;')}">${desc}</td>
+      </tr>`;
+    }).join("") + "</tbody>";
+    document.getElementById("raw-table").innerHTML = thead + tbody;
+    document.querySelectorAll("#raw-table th").forEach(th => {
+      th.addEventListener("click", () => {
+        const key = th.dataset.key;
+        if (sortKey === key) sortDir *= -1; else { sortKey = key; sortDir = 1; }
+        render();
+      });
+    });
+    const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+    document.getElementById("raw-page-info").textContent =
+      `${fmt(filtered.length)} records · page ${page+1} of ${totalPages}`;
+    document.getElementById("raw-prev").disabled = page === 0;
+    document.getElementById("raw-next").disabled = page >= totalPages - 1;
+  }
+
+  document.getElementById("raw-search").addEventListener("input", apply);
+  document.getElementById("raw-prev").addEventListener("click", () => { if (page>0){page--; render();} });
+  document.getElementById("raw-next").addEventListener("click", () => {
+    const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+    if (page < totalPages-1){page++; render();}
+  });
+
+  apply();
+})();
+</script>

@@ -1,0 +1,5 @@
+requests
+psycopg[binary]
+python-dotenv
+numpy
+scipy

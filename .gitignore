@@ -1,0 +1,33 @@
+# Python virtual environments
+venv/
+*.env
+
+# Ignore sensitive files
+ACCESS_TOKEN
+
+# Ignore compiled files
+__pycache__/
+*.pyc
+
+# Ignore logs and temporary files
+*.log
+*.tmp
+
+# Fetched data
+data/*
+!data/.gitkeep
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+logs/
+
+# Nested repo used solely to hand dashboard.html off to the cloud publish routine
+dashboard_repo/
+oswald_b64.txt
+dashboard_data.json
+dashboard.html
+
+# Local-only HTTP client (bot-detection workaround) - see its own docstring
+http_client.py
+requirements-local.txt
