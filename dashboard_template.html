@@ -244,13 +244,27 @@
 
   /* ---- Tables ---- */
   table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
-  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   th { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-muted); font-weight: 600; cursor: pointer; user-select: none; }
   th:hover { color: var(--ink); }
   td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
   .table-scroll table { min-width: 720px; }
   td.wrap-cell { white-space: normal; max-width: 340px; }
+
+  /* Raw records table: fixed layout so Description gets the room it needs and
+     Neighborhood/Category/Flag stay tight instead of stretching to content */
+  #raw-table { table-layout: fixed; }
+  .table-scroll:has(#raw-table) table { min-width: 980px; }
+  #raw-table th:nth-child(1), #raw-table td:nth-child(1) { width: 92px; }
+  #raw-table th:nth-child(2), #raw-table td:nth-child(2) { width: 64px; }
+  #raw-table th:nth-child(3), #raw-table td:nth-child(3) { width: 96px; }
+  #raw-table th:nth-child(4), #raw-table td:nth-child(4) { width: 76px; }
+  #raw-table th:nth-child(5), #raw-table td:nth-child(5) { width: 130px; }
+  #raw-table th:nth-child(6), #raw-table td:nth-child(6) { width: 84px; }
+  #raw-table th:nth-child(7), #raw-table td:nth-child(7) { width: 80px; }
+  #raw-table th:nth-child(8), #raw-table td:nth-child(8) { width: 58px; }
+  #raw-table td:nth-child(9) { white-space: normal; }
 
   .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 20px; font-size: 11.5px; font-weight: 600; }
   .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; }
@@ -696,14 +710,16 @@ function renderHBar(containerId, rows, labelKey, valueKey, color, max_n) {
     const tbody = "<tbody>" + pageRows.map(r => {
       const pill = r.status === "open" ? `<span class="pill pill-open">Open</span>` : `<span class="pill pill-closed">Closed</span>`;
       const flag = r.is_bike_lane_blocking ? `<span class="tag tag-confirmed">Confirmed</span>` : `<span class="tag tag-possible">Possible</span>`;
-      const desc = (r.description || "").slice(0, 90) + ((r.description||"").length > 90 ? "…" : "");
+      const desc = (r.description || "").slice(0, 220) + ((r.description||"").length > 220 ? "…" : "");
+      const street = r.nearest_bike_lane_street || "—";
+      const neigh = r.neighborhood || "—";
       return `<tr>
         <td><a href="https://311.boston.gov/tickets/${r.service_request_id}" target="_blank" rel="noopener">${r.service_request_id}</a></td>
         <td>${pill}</td>
-        <td>${r.service_name}</td>
+        <td title="${r.service_name}">${r.service_name}</td>
         <td>${flag}</td>
-        <td>${r.nearest_bike_lane_street || "—"}</td>
-        <td>${r.neighborhood || "—"}</td>
+        <td title="${street}">${street}</td>
+        <td title="${neigh}">${neigh}</td>
         <td>${r.requested_datetime ? new Date(r.requested_datetime).toLocaleDateString() : "—"}</td>
         <td class="num">${r.distance_to_bike_lane_m != null ? r.distance_to_bike_lane_m : "—"}</td>
         <td class="wrap-cell" title="${(r.description||"").replace(/"/g,'&quot;')}">${desc}</td>
