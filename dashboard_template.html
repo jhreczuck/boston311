@@ -252,19 +252,18 @@
   .table-scroll table { min-width: 720px; }
   td.wrap-cell { white-space: normal; max-width: 340px; }
 
-  /* Raw records table: fixed layout so Description gets the room it needs and
-     Neighborhood/Category/Flag stay tight instead of stretching to content */
+  /* Raw records table: fixed layout with a JS-managed <colgroup>, so
+     Description starts with the room it needs and every column is
+     manually drag-resizable via the handle in each header cell. */
   #raw-table { table-layout: fixed; }
   .table-scroll:has(#raw-table) table { min-width: 980px; }
-  #raw-table th:nth-child(1), #raw-table td:nth-child(1) { width: 92px; }
-  #raw-table th:nth-child(2), #raw-table td:nth-child(2) { width: 64px; }
-  #raw-table th:nth-child(3), #raw-table td:nth-child(3) { width: 96px; }
-  #raw-table th:nth-child(4), #raw-table td:nth-child(4) { width: 76px; }
-  #raw-table th:nth-child(5), #raw-table td:nth-child(5) { width: 130px; }
-  #raw-table th:nth-child(6), #raw-table td:nth-child(6) { width: 84px; }
-  #raw-table th:nth-child(7), #raw-table td:nth-child(7) { width: 80px; }
-  #raw-table th:nth-child(8), #raw-table td:nth-child(8) { width: 58px; }
   #raw-table td:nth-child(9) { white-space: normal; }
+  #raw-table th { position: relative; }
+  .col-resize-handle {
+    position: absolute; top: 0; right: -4px; width: 8px; height: 100%;
+    cursor: col-resize; z-index: 2; touch-action: none;
+  }
+  .col-resize-handle:hover, .col-resize-handle.active { background: var(--accent); opacity: 0.4; }
 
   .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 20px; font-size: 11.5px; font-weight: 600; }
   .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; }
@@ -681,6 +680,10 @@ function renderHBar(containerId, rows, labelKey, valueKey, color, max_n) {
     { key: "distance_to_bike_lane_m", label: "Dist (m)", num: true },
     { key: "description", label: "Description" },
   ];
+  // Column widths (px) - manually resizable via drag handles, kept here so
+  // a resize survives re-renders (sort/search/paginate) instead of resetting.
+  const colWidths = [92, 64, 96, 76, 130, 84, 80, 58, 400];
+  const MIN_COL_WIDTH = 36;
 
   function apply() {
     const q = document.getElementById("raw-search").value.trim().toLowerCase();
@@ -704,8 +707,9 @@ function renderHBar(containerId, rows, labelKey, valueKey, color, max_n) {
   function render() {
     const start = page * pageSize;
     const pageRows = filtered.slice(start, start + pageSize);
-    const thead = "<thead><tr>" + cols.map(c =>
-      `<th class="${c.num?'num':''}" data-key="${c.key}">${c.label}${sortKey===c.key ? (sortDir===1?' ▲':' ▼') : ''}</th>`
+    const colgroup = "<colgroup>" + colWidths.map(w => `<col style="width:${w}px">`).join("") + "</colgroup>";
+    const thead = "<thead><tr>" + cols.map((c, i) =>
+      `<th class="${c.num?'num':''}" data-key="${c.key}">${c.label}${sortKey===c.key ? (sortDir===1?' ▲':' ▼') : ''}<span class="col-resize-handle" data-col-index="${i}"></span></th>`
     ).join("") + "</tr></thead>";
     const tbody = "<tbody>" + pageRows.map(r => {
       const pill = r.status === "open" ? `<span class="pill pill-open">Open</span>` : `<span class="pill pill-closed">Closed</span>`;
@@ -725,13 +729,37 @@ function renderHBar(containerId, rows, labelKey, valueKey, color, max_n) {
         <td class="wrap-cell" title="${(r.description||"").replace(/"/g,'&quot;')}">${desc}</td>
       </tr>`;
     }).join("") + "</tbody>";
-    document.getElementById("raw-table").innerHTML = thead + tbody;
+    document.getElementById("raw-table").innerHTML = colgroup + thead + tbody;
     document.querySelectorAll("#raw-table th").forEach(th => {
       th.addEventListener("click", () => {
         const key = th.dataset.key;
         if (sortKey === key) sortDir *= -1; else { sortKey = key; sortDir = 1; }
         render();
       });
+    });
+    document.querySelectorAll("#raw-table .col-resize-handle").forEach(handle => {
+      handle.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const i = +handle.dataset.colIndex;
+        const startX = e.clientX;
+        const startWidth = colWidths[i];
+        const col = document.querySelectorAll("#raw-table col")[i];
+        handle.classList.add("active");
+        function onMove(ev) {
+          const w = Math.max(MIN_COL_WIDTH, startWidth + (ev.clientX - startX));
+          colWidths[i] = w;
+          col.style.width = w + "px";
+        }
+        function onUp() {
+          handle.classList.remove("active");
+          document.removeEventListener("mousemove", onMove);
+          document.removeEventListener("mouseup", onUp);
+        }
+        document.addEventListener("mousemove", onMove);
+        document.addEventListener("mouseup", onUp);
+      });
+      handle.addEventListener("click", (e) => e.stopPropagation());
     });
     const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
     document.getElementById("raw-page-info").textContent =
