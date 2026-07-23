@@ -516,12 +516,12 @@ document.getElementById("download-json").addEventListener("click", () => {
   const confirmed = cmp.find(r => r.request_group === "Confirmed bike lane blocking");
   const possible = cmp.find(r => r.request_group === "Possible bike lane blocking");
   const other = cmp.find(r => r.request_group === "Other Parking/Vehicle/Bicycle Requests");
-  const closedRatio = (confirmed.pct_closed / other.pct_closed);
+  const closureGap = (1 - confirmed.pct_closed / other.pct_closed) * 100;
 
   const tiles = [
     ["Confirmed closure rate", pct(confirmed.pct_closed), `vs. ${pct(other.pct_closed)} for other requests`, "critical"],
     ["Confirmed on-time rate", pct(confirmed.pct_on_time), `vs. ${pct(other.pct_on_time)} for other requests`, "critical"],
-    ["Closes less often by", (closedRatio*100).toFixed(0) + "%", "of the baseline closure rate", "accent"],
+    ["Closure rate gap", closureGap.toFixed(0) + "% lower", "than other requests in the same queue", "critical"],
   ];
   document.getElementById("stat-tiles").innerHTML = tiles.map(([label, val, sub, cls]) =>
     `<div class="stat-tile"><p class="stat-label">${label}</p><p class="stat-value ${cls}">${val}</p><p class="stat-sub">${sub}</p></div>`
