@@ -212,6 +212,7 @@
   }
   .compare-card h3 { font-size: 15px; font-weight: 600; margin: 0 0 3px; }
   .compare-card .n { font-size: 12px; color: var(--ink-muted); margin: 0 0 14px; font-variant-numeric: tabular-nums; }
+  .compare-card .caveat { font-size: 11.5px; font-style: italic; color: var(--ink-muted); margin: -8px 0 14px; line-height: 1.4; }
   .metric-bar-group { margin-bottom: 16px; }
   .metric-bar-label { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--ink-2); margin-bottom: 5px; }
   .metric-bar-label .v { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
@@ -289,6 +290,7 @@
   footer li { margin-bottom: 6px; }
 
   a { color: inherit; }
+  #raw-table td a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; font-variant-numeric: tabular-nums; }
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
@@ -534,6 +536,9 @@ document.getElementById("download-json").addEventListener("click", () => {
   const order = ["Confirmed bike lane blocking", "Possible bike lane blocking", "Other Parking/Vehicle/Bicycle Requests"];
   const colors = { "Confirmed bike lane blocking": "var(--accent)", "Possible bike lane blocking": "var(--cat-possible)", "Other Parking/Vehicle/Bicycle Requests": "var(--cat-other)" };
   const short = { "Confirmed bike lane blocking": "Confirmed", "Possible bike lane blocking": "Possible", "Other Parking/Vehicle/Bicycle Requests": "Other requests" };
+  const caveat = {
+    "Possible bike lane blocking": "Location-based only — likely includes some ordinary parking complaints near a bike lane street, not just bike lane blockers.",
+  };
 
   const html = order.map(key => {
     const r = cmp.find(x => x.request_group === key);
@@ -542,6 +547,7 @@ document.getElementById("download-json").addEventListener("click", () => {
     return `<div class="compare-card">
       <h3>${short[key]}</h3>
       <p class="n">${fmt(total)} requests</p>
+      ${caveat[key] ? `<p class="caveat">${caveat[key]}</p>` : ""}
       <div class="metric-bar-group">
         <div class="metric-bar-label"><span>Closed</span><span class="v">${pct(r.pct_closed)}</span></div>
         <div class="metric-bar-track"><div class="metric-bar-fill" style="width:${r.pct_closed}%;background:${color};"></div></div>
@@ -651,6 +657,7 @@ function renderHBar(containerId, rows, labelKey, valueKey, color, max_n) {
   const pageSize = 50;
 
   const cols = [
+    { key: "service_request_id", label: "Case #" },
     { key: "status", label: "Status" },
     { key: "service_name", label: "Category" },
     { key: "flag", label: "Flag" },
@@ -691,6 +698,7 @@ function renderHBar(containerId, rows, labelKey, valueKey, color, max_n) {
       const flag = r.is_bike_lane_blocking ? `<span class="tag tag-confirmed">Confirmed</span>` : `<span class="tag tag-possible">Possible</span>`;
       const desc = (r.description || "").slice(0, 90) + ((r.description||"").length > 90 ? "…" : "");
       return `<tr>
+        <td><a href="https://311.boston.gov/tickets/${r.service_request_id}" target="_blank" rel="noopener">${r.service_request_id}</a></td>
         <td>${pill}</td>
         <td>${r.service_name}</td>
         <td>${flag}</td>
