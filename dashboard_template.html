@@ -196,7 +196,7 @@
     border: 1px solid var(--border); border-radius: 7px;
     padding: 7px 13px; font-size: 13px; font-weight: 500;
     cursor: pointer; white-space: nowrap;
-    font-family: inherit;
+    font-family: inherit; text-decoration: none;
   }
   .btn:hover { background: var(--surface-2); }
   .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -372,6 +372,7 @@
         <p class="section-note">Top streets and neighborhoods by combined Confirmed + Possible incident count.</p>
       </div>
       <div class="btn-row">
+        <a class="btn btn-accent" href="./map.html">View interactive map →</a>
         <button class="btn" data-csv="bike_lane_street_hotspots">Streets CSV</button>
         <button class="btn" data-csv="bike_lane_hotspots">Neighborhoods CSV</button>
       </div>

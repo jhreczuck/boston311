@@ -24,14 +24,16 @@ def run(cmd, cwd):
 def main():
     run([PYTHON, "export_public_dashboard.py"], cwd=BASE)
     run([PYTHON, "build_dashboard.py"], cwd=BASE)
+    run([PYTHON, "build_map.py"], cwd=BASE)
 
     shutil.copy2(BASE / "dashboard.html", REPO_DIR / "dashboard.html")
     # index.html is a duplicate copy so GitHub Pages serves it automatically
     # at the repo root, with no login gate - dashboard.html stays as the name
     # the cloud republish routine looks for.
     shutil.copy2(BASE / "dashboard.html", REPO_DIR / "index.html")
+    shutil.copy2(BASE / "map.html", REPO_DIR / "map.html")
 
-    run(["git", "add", "dashboard.html", "index.html"], cwd=REPO_DIR)
+    run(["git", "add", "dashboard.html", "index.html", "map.html"], cwd=REPO_DIR)
 
     has_commit = subprocess.run(
         ["git", "rev-parse", "HEAD"], cwd=REPO_DIR, capture_output=True
