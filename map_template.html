@@ -147,14 +147,14 @@
 
 <div class="toolbar">
   <div class="toggle-group" role="group" aria-label="Map view">
-    <button class="toggle-btn active" id="btn-pins" type="button">Pins</button>
-    <button class="toggle-btn" id="btn-heat" type="button">Heatmap</button>
+    <button class="toggle-btn" id="btn-pins" type="button">Pins</button>
+    <button class="toggle-btn active" id="btn-heat" type="button">Heatmap</button>
   </div>
-  <div class="legend" id="legend-pins">
+  <div class="legend" id="legend-pins" style="display:none;">
     <span class="legend-item"><span class="legend-dot" style="background:var(--accent);"></span>Confirmed</span>
     <span class="legend-item"><span class="legend-dot" style="background:var(--cat-possible);"></span>Possible</span>
   </div>
-  <div class="legend" id="legend-heat" style="display:none;">
+  <div class="legend" id="legend-heat">
     <span>Low</span><span class="legend-ramp"></span><span>High density</span>
   </div>
   <div class="toolbar-spacer"></div>
@@ -237,7 +237,7 @@ const heatLayer = L.heatLayer(heatPoints, {
   gradient: { 0.2: "#fde68a", 0.5: "#eb6834", 1.0: "#d03b3b" },
 });
 
-clusterGroup.addTo(map);
+heatLayer.addTo(map);
 
 document.getElementById("btn-pins").addEventListener("click", () => {
   map.removeLayer(heatLayer);
