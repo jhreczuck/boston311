@@ -9,11 +9,12 @@ Usage:
 
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 BASE = Path(__file__).parent
 REPO_DIR = BASE / "dashboard_repo"
-PYTHON = str(BASE / "venv" / "Scripts" / "python.exe")
+PYTHON = sys.executable
 
 
 def run(cmd, cwd):
