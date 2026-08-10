@@ -27,6 +27,7 @@ def main():
     run([PYTHON, "build_dashboard.py"], cwd=BASE)
     run([PYTHON, "build_map.py"], cwd=BASE)
     run([PYTHON, "build_government_vehicles.py"], cwd=BASE)
+    run([PYTHON, "build_photos.py"], cwd=BASE)
 
     shutil.copy2(BASE / "dashboard.html", REPO_DIR / "dashboard.html")
     # index.html is a duplicate copy so GitHub Pages serves it automatically
@@ -35,8 +36,9 @@ def main():
     shutil.copy2(BASE / "dashboard.html", REPO_DIR / "index.html")
     shutil.copy2(BASE / "map.html", REPO_DIR / "map.html")
     shutil.copy2(BASE / "government-vehicles.html", REPO_DIR / "government-vehicles.html")
+    shutil.copy2(BASE / "photos.html", REPO_DIR / "photos.html")
 
-    run(["git", "add", "dashboard.html", "index.html", "map.html", "government-vehicles.html"], cwd=REPO_DIR)
+    run(["git", "add", "dashboard.html", "index.html", "map.html", "government-vehicles.html", "photos.html"], cwd=REPO_DIR)
 
     has_commit = subprocess.run(
         ["git", "rev-parse", "HEAD"], cwd=REPO_DIR, capture_output=True

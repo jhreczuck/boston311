@@ -85,3 +85,19 @@ CREATE TABLE government_vehicle_incidents (
     confidence          TEXT NOT NULL CHECK (confidence IN ('confirmed', 'likely')),
     noted_at            TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Ward+precinct -> City Council district crosswalk, transcribed from Boston's
+-- official 2026/2027 Elected Officials roster. Precinct-level (not just
+-- ward) because several wards (3, 4, 5, 8, 9, 16, 18, 19, 20, 21) are split
+-- across multiple districts by precinct - several of them among this
+-- project's top hotspot areas, so a ward-only mapping would misattribute
+-- exactly the records that matter most. Built/populated by
+-- build_councilor_crosswalk.py, not by hand-written INSERTs.
+CREATE TABLE boston_council_districts (
+    ward              INTEGER NOT NULL,
+    precinct          INTEGER NOT NULL,
+    district          INTEGER NOT NULL,
+    councilor_name    TEXT NOT NULL,
+    councilor_email   TEXT NOT NULL,
+    PRIMARY KEY (ward, precinct)
+);

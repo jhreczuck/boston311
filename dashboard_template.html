@@ -259,6 +259,8 @@
   .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
   .table-scroll table { min-width: 720px; }
   td.wrap-cell { white-space: normal; max-width: 340px; }
+  .thumb { width: 38px; height: 38px; object-fit: cover; border-radius: 6px; display: block; border: 1px solid var(--border); }
+  .thumb-none { color: var(--ink-muted); }
 
   /* Raw records table: fixed layout with a JS-managed <colgroup>, so
      Description starts with the room it needs and every column is
@@ -413,6 +415,33 @@
     </div>
     <div class="table-scroll">
       <table id="category-table"></table>
+    </div>
+  </section>
+
+  <section id="councilors">
+    <div class="section-head">
+      <div>
+        <h2>Who's your councilor</h2>
+        <p class="section-note">Confirmed + Possible bike lane blocking incidents by City Council district (precinct-level mapping — several wards are split across multiple districts). Source: <a href="https://www.boston.gov/departments/city-council" target="_blank" rel="noopener">Boston City Council</a>, 2026/2027 roster.</p>
+      </div>
+      <div class="btn-row">
+        <button class="btn" data-csv="councilor_summary">Download CSV</button>
+      </div>
+    </div>
+    <div class="table-scroll">
+      <table id="councilor-table"></table>
+    </div>
+  </section>
+
+  <section id="photos">
+    <div class="section-head">
+      <div>
+        <h2>Photo evidence</h2>
+        <p class="section-note">Photos submitted alongside 311 reports — cars, trucks, and government vehicles sitting in the lane.</p>
+      </div>
+      <div class="btn-row">
+        <a class="btn btn-accent" href="./photos.html">View photo gallery →</a>
+      </div>
     </div>
   </section>
 
@@ -673,6 +702,20 @@ function renderHBar(containerId, rows, labelKey, valueKey, color, max_n) {
   document.getElementById("category-table").innerHTML = thead + tbody;
 })();
 
+// ---- Councilor table ----
+(function renderCouncilorTable() {
+  const rows = DATA.councilor_summary.rows;
+  const thead = `<thead><tr><th>District</th><th>Councilor</th><th class="num">Confirmed</th><th class="num">Possible</th><th class="num">Total</th></tr></thead>`;
+  const tbody = "<tbody>" + rows.map(r => {
+    const nameCell = r.councilor_email
+      ? `<a href="mailto:${r.councilor_email}">${r.councilor_name}</a>`
+      : r.councilor_name;
+    return `<tr><td>${r.district}</td><td>${nameCell}</td><td class="num">${fmt(r.confirmed_count)}</td>
+      <td class="num">${fmt(r.possible_count)}</td><td class="num">${fmt(r.total)}</td></tr>`;
+  }).join("") + "</tbody>";
+  document.getElementById("councilor-table").innerHTML = thead + tbody;
+})();
+
 // ---- Raw data table ----
 (function rawTable() {
   const allRows = DATA.bike_lane_records.rows;
@@ -683,6 +726,7 @@ function renderHBar(containerId, rows, labelKey, valueKey, color, max_n) {
   const pageSize = 50;
 
   const cols = [
+    { key: "photo", label: "Photo" },
     { key: "service_request_id", label: "Case #" },
     { key: "status", label: "Status" },
     { key: "service_name", label: "Category" },
@@ -695,7 +739,7 @@ function renderHBar(containerId, rows, labelKey, valueKey, color, max_n) {
   ];
   // Column widths (px) - manually resizable via drag handles, kept here so
   // a resize survives re-renders (sort/search/paginate) instead of resetting.
-  const colWidths = [92, 64, 96, 76, 130, 84, 80, 58, 400];
+  const colWidths = [52, 92, 64, 96, 76, 130, 84, 80, 58, 360];
   const MIN_COL_WIDTH = 36;
 
   function apply() {
@@ -730,7 +774,11 @@ function renderHBar(containerId, rows, labelKey, valueKey, color, max_n) {
       const desc = (r.description || "").slice(0, 220) + ((r.description||"").length > 220 ? "…" : "");
       const street = r.nearest_bike_lane_street || "—";
       const neigh = r.neighborhood || "—";
+      const photo = r.media_url
+        ? `<a href="${r.media_url}" target="_blank" rel="noopener"><img class="thumb" src="${r.media_url}" loading="lazy" alt=""></a>`
+        : `<span class="thumb-none">—</span>`;
       return `<tr>
+        <td>${photo}</td>
         <td><a href="https://311.boston.gov/tickets/${r.service_request_id}" target="_blank" rel="noopener">${r.service_request_id}</a></td>
         <td>${pill}</td>
         <td title="${r.service_name}">${r.service_name}</td>

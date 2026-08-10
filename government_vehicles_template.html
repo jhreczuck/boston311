@@ -87,7 +87,10 @@
   .stat-value { font-size: 32px; font-weight: 600; line-height: 1; margin: 0; font-variant-numeric: tabular-nums; color: var(--status-critical); }
 
   .incident-list { display: flex; flex-direction: column; gap: 12px; }
-  .incident-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+  .incident-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; display: flex; gap: 14px; }
+  .incident-thumb { width: 84px; height: 84px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); flex-shrink: 0; }
+  .incident-thumb-none { width: 84px; height: 84px; border-radius: 8px; border: 1px dashed var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: var(--ink-muted); font-size: 11px; text-align: center; }
+  .incident-body { min-width: 0; flex: 1; }
   .incident-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
   .badge { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; }
   .badge-agency { background: color-mix(in srgb, var(--status-critical) 16%, transparent); color: var(--status-critical); }
@@ -180,7 +183,12 @@ const fmt = (n) => n == null ? "—" : Number(n).toLocaleString();
         ? `<span class="badge badge-confirmed">Confirmed</span>`
         : `<span class="badge badge-likely">Likely</span>`;
       const date = r.requested_datetime ? new Date(r.requested_datetime).toLocaleDateString() : "—";
+      const thumb = r.media_url
+        ? `<a href="${r.media_url}" target="_blank" rel="noopener"><img class="incident-thumb" src="${r.media_url}" loading="lazy" alt=""></a>`
+        : `<span class="incident-thumb-none">No photo</span>`;
       return `<div class="incident-card">
+        ${thumb}
+        <div class="incident-body">
         <div class="incident-head">
           <span class="badge badge-agency">${r.agency}</span>
           ${confBadge}
@@ -190,6 +198,7 @@ const fmt = (n) => n == null ? "—" : Number(n).toLocaleString();
         <p class="incident-desc">${(r.description || "").replace(/</g,"&lt;")}</p>
         <p class="incident-loc">${r.nearest_bike_lane_street || r.neighborhood || r.address || "—"}${r.neighborhood ? " · " + r.neighborhood : ""}</p>
         <a class="incident-link" href="https://311.boston.gov/tickets/${r.service_request_id}" target="_blank" rel="noopener">View case #${r.service_request_id} →</a>
+        </div>
       </div>`;
     }).join("");
   }

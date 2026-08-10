@@ -33,6 +33,7 @@ VIEWS = {
     "bike_lane_records": "v_public_bike_lane_records",
     "government_vehicle_incidents": "v_kpi_government_vehicle_incidents",
     "government_vehicle_summary": "v_kpi_government_vehicle_summary",
+    "councilor_summary": "v_kpi_councilor_summary",
 }
 
 # open_backlog is large and long-tail; only the oldest N are useful in a

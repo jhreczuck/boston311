@@ -17,6 +17,7 @@ SELECT
     sr.is_possible_bike_lane_blocking,
     round(sr.distance_to_bike_lane_m::numeric, 1) AS distance_to_bike_lane_m,
     sr.nearest_bike_lane_street,
+    sr.media_url,
     COALESCE(stg.neighborhood, trim(split_part(sr.address, ',', 2))) AS neighborhood,
     CASE WHEN stg.ward IS NOT NULL THEN 'Ward ' || regexp_replace(stg.ward, '\D', '', 'g')::int END AS ward
 FROM service_requests sr
@@ -38,6 +39,7 @@ SELECT
     sr.address,
     sr.description,
     sr.nearest_bike_lane_street,
+    sr.media_url,
     COALESCE(stg.neighborhood, trim(split_part(sr.address, ',', 2))) AS neighborhood
 FROM government_vehicle_incidents gvi
 JOIN service_requests sr ON sr.service_request_id = gvi.service_request_id
@@ -53,6 +55,34 @@ SELECT
     count(*) FILTER (WHERE confidence = 'likely') AS likely_count
 FROM government_vehicle_incidents
 GROUP BY agency
+ORDER BY total DESC;
+
+-- Confirmed + Possible bike lane blocking incidents by City Council district,
+-- via boston_council_districts (ward+precinct crosswalk - several wards are
+-- split across districts by precinct, so this is precinct-level, not just
+-- ward). stg_boston_311's precinct field is a 4-digit WWPP code; only
+-- well-formed 4-digit values are joined (~99.2% of rows - a handful carry a
+-- letter suffix like '0502A' or are blank and are excluded here rather than
+-- guessed at). The 3 records in Ward 20 Precinct 1 don't resolve to any
+-- district - that's a real gap in the source roster PDF itself, not a bug
+-- here, and show up as 'Unassigned'.
+CREATE OR REPLACE VIEW v_kpi_councilor_summary AS
+SELECT
+    COALESCE('District ' || bcd.district::text, 'Unassigned') AS district,
+    COALESCE(bcd.councilor_name, '—') AS councilor_name,
+    bcd.councilor_email,
+    count(*) AS total,
+    count(*) FILTER (WHERE sr.is_bike_lane_blocking) AS confirmed_count,
+    count(*) FILTER (WHERE sr.is_possible_bike_lane_blocking) AS possible_count
+FROM service_requests sr
+JOIN stg_boston_311 stg ON stg.case_enquiry_id = sr.service_request_id
+LEFT JOIN boston_council_districts bcd
+    ON stg.precinct ~ '^[0-9]{4}$'
+   AND bcd.ward = substring(stg.precinct from 1 for 2)::int
+   AND bcd.precinct = substring(stg.precinct from 3 for 2)::int
+WHERE (sr.is_bike_lane_blocking OR sr.is_possible_bike_lane_blocking)
+  AND stg.precinct ~ '^[0-9]{4}$'
+GROUP BY 1, 2, 3
 ORDER BY total DESC;
 
 -- KPI views for bike lane / pedestrian obstruction analysis
