@@ -67,3 +67,21 @@ CREATE TABLE ingested_files (
     record_count  INTEGER NOT NULL,
     loaded_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Hand-curated: records where a government/police/transit vehicle is the one
+-- described as blocking the bike lane. NOT a regex-driven flag like
+-- is_bike_lane_blocking - roughly a third of naive keyword matches on
+-- "police"/"BPD"/etc. turn out to be complaints ABOUT lack of enforcement,
+-- not about a government vehicle actually blocking anything, so this list is
+-- manually verified by reading each candidate description. Given the small
+-- volume (dozens, not thousands) manual curation is both feasible and far
+-- more defensible than an automated flag for a claim this sensitive.
+CREATE TABLE government_vehicle_incidents (
+    service_request_id TEXT PRIMARY KEY REFERENCES service_requests(service_request_id),
+    agency              TEXT NOT NULL,   -- 'Police', 'BTD', 'MBTA', 'City/Government'
+    -- 'confirmed' = description unambiguously names the vehicle/agency and
+    -- states it was parked/blocking. 'likely' = a plausible but less
+    -- explicit read (e.g. a general claim, or a related-but-not-exact lane).
+    confidence          TEXT NOT NULL CHECK (confidence IN ('confirmed', 'likely')),
+    noted_at            TIMESTAMPTZ NOT NULL DEFAULT now()
+);

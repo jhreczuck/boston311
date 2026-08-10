@@ -28,6 +28,7 @@ oswald_b64.txt
 dashboard_data.json
 dashboard.html
 map.html
+government-vehicles.html
 
 # Local-only HTTP client (bot-detection workaround) - see its own docstring
 http_client.py

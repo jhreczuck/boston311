@@ -208,6 +208,8 @@
     text-shadow: 0 1px 2px rgba(0,0,0,0.25);
   }
   .btn-heat:hover { filter: brightness(1.08); }
+  .btn-critical { background: var(--status-critical); color: #fff; border-color: transparent; font-weight: 600; }
+  .btn-critical:hover { filter: brightness(1.08); }
   .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
 
   /* ---- Comparison chart (three small-multiple bars) ---- */
@@ -325,6 +327,7 @@
     <p class="dek">Every 311 complaint about a vehicle in a Boston bike lane, cross-checked two independent ways — what people wrote, and where they stood — and compared against how the city handles everything else in the same queue.</p>
     <div class="btn-row" style="margin-bottom:22px;">
       <a class="btn btn-heat" href="./map.html">Heat Map →</a>
+      <a class="btn btn-critical" href="./government-vehicles.html">Government &amp; Police Vehicles →</a>
     </div>
     <div class="scale-band" id="scale-band"></div>
     <div class="meta-row" id="meta-row"></div>

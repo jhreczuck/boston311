@@ -24,6 +24,37 @@ LEFT JOIN stg_boston_311 stg ON stg.case_enquiry_id = sr.service_request_id
 WHERE coalesce(sr.is_bike_lane_blocking, false) OR coalesce(sr.is_possible_bike_lane_blocking, false)
 ORDER BY sr.requested_datetime DESC;
 
+-- Hand-curated government/police/transit vehicle incidents (see
+-- government_vehicle_incidents for the methodology note). One row per
+-- incident with everything needed for the "unfortunate statistics" page.
+CREATE OR REPLACE VIEW v_kpi_government_vehicle_incidents AS
+SELECT
+    sr.service_request_id,
+    gvi.agency,
+    gvi.confidence,
+    CASE WHEN sr.is_bike_lane_blocking THEN 'Confirmed' ELSE 'Possible' END AS bike_lane_flag,
+    sr.status,
+    sr.requested_datetime,
+    sr.address,
+    sr.description,
+    sr.nearest_bike_lane_street,
+    COALESCE(stg.neighborhood, trim(split_part(sr.address, ',', 2))) AS neighborhood
+FROM government_vehicle_incidents gvi
+JOIN service_requests sr ON sr.service_request_id = gvi.service_request_id
+LEFT JOIN stg_boston_311 stg ON stg.case_enquiry_id = sr.service_request_id
+ORDER BY sr.requested_datetime DESC;
+
+-- Summary counts by agency, for the headline stat tiles
+CREATE OR REPLACE VIEW v_kpi_government_vehicle_summary AS
+SELECT
+    agency,
+    count(*) AS total,
+    count(*) FILTER (WHERE confidence = 'confirmed') AS confirmed_count,
+    count(*) FILTER (WHERE confidence = 'likely') AS likely_count
+FROM government_vehicle_incidents
+GROUP BY agency
+ORDER BY total DESC;
+
 -- KPI views for bike lane / pedestrian obstruction analysis
 -- (Illegal Parking, Abandoned Vehicle, Bicycle Issues, Abandoned Bicycle)
 --

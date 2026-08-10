@@ -1,0 +1,200 @@
+<title>Bike Lanes, Blocked — Government &amp; Police Vehicles</title>
+<style>
+  @font-face {
+    font-family: "Oswald";
+    src: url(data:font/ttf;base64,__FONT_B64__) format("truetype-variations");
+    font-weight: 200 700;
+    font-display: swap;
+  }
+
+  :root {
+    color-scheme: light;
+    --bg: #f4f3ee;
+    --surface: #ffffff;
+    --surface-2: #eeece4;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --ink-muted: #898781;
+    --border: rgba(11,11,11,0.10);
+    --grid: #e1e0d9;
+    --accent: #1baf7a;
+    --accent-ink: #0b3d29;
+    --cat-possible: #eb6834;
+    --status-critical: #d03b3b;
+    --chart-surface: #fcfcfb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --bg: #13150f;
+      --surface: #1b1d17;
+      --surface-2: #22241d;
+      --ink: #ffffff;
+      --ink-2: #c3c2b7;
+      --ink-muted: #8f8d86;
+      --border: rgba(255,255,255,0.10);
+      --grid: #2c2c2a;
+      --accent: #199e70;
+      --accent-ink: #bdf3da;
+      --cat-possible: #d95926;
+      --status-critical: #e66767;
+      --chart-surface: #1a1a19;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #13150f; --surface: #1b1d17; --surface-2: #22241d;
+    --ink: #ffffff; --ink-2: #c3c2b7; --ink-muted: #8f8d86;
+    --border: rgba(255,255,255,0.10); --grid: #2c2c2a;
+    --accent: #199e70; --accent-ink: #bdf3da; --cat-possible: #d95926;
+    --status-critical: #e66767; --chart-surface: #1a1a19;
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --bg: #f4f3ee; --surface: #ffffff; --surface-2: #eeece4;
+    --ink: #0b0b0b; --ink-2: #52514e; --ink-muted: #898781;
+    --border: rgba(11,11,11,0.10); --grid: #e1e0d9;
+    --accent: #1baf7a; --accent-ink: #0b3d29; --cat-possible: #eb6834;
+    --status-critical: #d03b3b; --chart-surface: #fcfcfb;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font: 15px/1.55 -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 0 24px 80px; }
+  h1, h2, .eyebrow, .stat-value { font-family: "Oswald", -apple-system, sans-serif; }
+
+  .masthead { padding: 40px 0 28px; border-bottom: 3px solid var(--status-critical); }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.14em; font-size: 12.5px; font-weight: 600; color: var(--status-critical); margin: 0 0 10px; }
+  h1 { font-size: clamp(30px, 4.6vw, 46px); font-weight: 600; letter-spacing: -0.01em; line-height: 1.04; margin: 0 0 14px; text-wrap: balance; max-width: 20ch; }
+  .dek { font-size: 16.5px; color: var(--ink-2); max-width: 62ch; margin: 0 0 20px; }
+  .back-link { font-size: 13px; color: var(--ink-2); text-decoration: none; border: 1px solid var(--border); border-radius: 7px; padding: 7px 13px; background: var(--surface); display: inline-flex; }
+  .back-link:hover { background: var(--surface-2); }
+
+  section { padding: 36px 0; border-bottom: 1px solid var(--border); }
+  section:last-of-type { border-bottom: none; }
+  h2 { font-size: 21px; font-weight: 600; margin: 0 0 6px; letter-spacing: -0.01em; }
+  .section-note { font-size: 13.5px; color: var(--ink-muted); margin: 0 0 20px; max-width: 68ch; }
+
+  .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  @media (max-width: 700px) { .stat-row { grid-template-columns: repeat(2, 1fr); } }
+  .stat-tile { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 16px 14px; }
+  .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); margin: 0 0 8px; }
+  .stat-value { font-size: 32px; font-weight: 600; line-height: 1; margin: 0; font-variant-numeric: tabular-nums; color: var(--status-critical); }
+
+  .incident-list { display: flex; flex-direction: column; gap: 12px; }
+  .incident-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+  .incident-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+  .badge { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-agency { background: color-mix(in srgb, var(--status-critical) 16%, transparent); color: var(--status-critical); }
+  .badge-confirmed { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent-ink); }
+  .badge-likely { background: var(--surface-2); color: var(--ink-2); }
+  .badge-flag { background: color-mix(in srgb, var(--cat-possible) 16%, transparent); color: var(--cat-possible); }
+  .incident-meta { font-size: 12.5px; color: var(--ink-muted); margin-left: auto; }
+  .incident-desc { font-size: 14px; color: var(--ink); margin: 0 0 8px; line-height: 1.5; }
+  .incident-loc { font-size: 12.5px; color: var(--ink-2); margin: 0 0 6px; }
+  .incident-link { font-size: 12.5px; color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+
+  .filter-row { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .filter-btn { font-family: inherit; font-size: 12.5px; font-weight: 600; padding: 6px 13px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface); color: var(--ink-2); cursor: pointer; }
+  .filter-btn.active { background: var(--status-critical); color: #fff; border-color: transparent; }
+
+  footer { padding: 32px 0 16px; font-size: 13px; color: var(--ink-muted); }
+  footer ul { margin: 8px 0 0; padding-left: 18px; }
+  footer li { margin-bottom: 6px; }
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+
+<div class="wrap">
+  <div class="masthead">
+    <p class="eyebrow">Boston Open Data · 311 Service Requests</p>
+    <h1>When the Enforcers Are the Ones Blocking the Lane</h1>
+    <p class="dek">Every hand-verified case in this dataset where the vehicle described as blocking a bike lane is itself a police, BTD, MBTA, or other government vehicle — the agencies responsible for keeping these lanes clear.</p>
+    <a class="back-link" href="./index.html">← Back to dashboard</a>
+  </div>
+
+  <section id="stats">
+    <h2>By agency</h2>
+    <p class="section-note">Total hand-verified incidents per agency, out of the confirmed + possible bike lane blocking pool.</p>
+    <div class="stat-row" id="stat-tiles"></div>
+  </section>
+
+  <section id="incidents">
+    <h2>Every incident</h2>
+    <p class="section-note">Each one read individually before inclusion — see methodology below for what "Confirmed" vs. "Likely" means here.</p>
+    <div class="filter-row" id="filter-row"></div>
+    <div class="incident-list" id="incident-list"></div>
+  </section>
+
+  <footer>
+    <strong>Methodology</strong>
+    <ul>
+      <li>This list is <b>hand-curated, not automated</b>. A text search for government/police/transit terms in flagged descriptions returned many false positives — mostly complaints <i>about</i> police not enforcing, not about a government vehicle actually blocking a lane. Each candidate was read individually before inclusion.</li>
+      <li><b>Confirmed</b> = the description unambiguously names the vehicle/agency and states it was parked or blocking. <b>Likely</b> = a plausible but less explicit read (e.g. a general claim, or an adjacent lane like a bus stop rather than the bike lane itself).</li>
+      <li><b>Confirmed bike lane</b> / <b>Possible bike lane</b> badges refer to the same flag used across the rest of this dataset — see the <a href="./index.html">main dashboard</a> for that methodology.</li>
+      <li>This is very likely an undercount — it reflects what turned up during a single manual review pass, not an exhaustive search. It is not padded with borderline text matches to inflate the total.</li>
+    </ul>
+  </footer>
+</div>
+
+<script>
+const DATA = __DATA_JSON__;
+const fmt = (n) => n == null ? "—" : Number(n).toLocaleString();
+
+(function renderStats() {
+  const rows = DATA.government_vehicle_summary.rows;
+  const total = rows.reduce((s, r) => s + r.total, 0);
+  const tiles = [{agency: "All agencies", total}, ...rows];
+  document.getElementById("stat-tiles").innerHTML = tiles.map(r =>
+    `<div class="stat-tile"><p class="stat-label">${r.agency}</p><p class="stat-value">${fmt(r.total)}</p></div>`
+  ).join("");
+})();
+
+(function renderIncidents() {
+  const rows = DATA.government_vehicle_incidents.rows;
+  const agencies = ["All", ...new Set(rows.map(r => r.agency))];
+  let activeAgency = "All";
+
+  function renderFilters() {
+    document.getElementById("filter-row").innerHTML = agencies.map(a =>
+      `<button class="filter-btn ${a===activeAgency?'active':''}" data-agency="${a}">${a}</button>`
+    ).join("");
+    document.querySelectorAll(".filter-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        activeAgency = btn.dataset.agency;
+        renderFilters();
+        renderList();
+      });
+    });
+  }
+
+  function renderList() {
+    const filtered = activeAgency === "All" ? rows : rows.filter(r => r.agency === activeAgency);
+    document.getElementById("incident-list").innerHTML = filtered.map(r => {
+      const confBadge = r.confidence === "confirmed"
+        ? `<span class="badge badge-confirmed">Confirmed</span>`
+        : `<span class="badge badge-likely">Likely</span>`;
+      const date = r.requested_datetime ? new Date(r.requested_datetime).toLocaleDateString() : "—";
+      return `<div class="incident-card">
+        <div class="incident-head">
+          <span class="badge badge-agency">${r.agency}</span>
+          ${confBadge}
+          <span class="badge badge-flag">${r.bike_lane_flag} bike lane</span>
+          <span class="incident-meta">${date} · ${r.status}</span>
+        </div>
+        <p class="incident-desc">${(r.description || "").replace(/</g,"&lt;")}</p>
+        <p class="incident-loc">${r.nearest_bike_lane_street || r.neighborhood || r.address || "—"}${r.neighborhood ? " · " + r.neighborhood : ""}</p>
+        <a class="incident-link" href="https://311.boston.gov/tickets/${r.service_request_id}" target="_blank" rel="noopener">View case #${r.service_request_id} →</a>
+      </div>`;
+    }).join("");
+  }
+
+  renderFilters();
+  renderList();
+})();
+</script>
