@@ -273,16 +273,69 @@ LEFT JOIN stg_boston_311 stg ON stg.case_enquiry_id = sr.service_request_id
 WHERE sr.is_bike_lane_blocking
 ORDER BY sr.requested_datetime DESC;
 
--- Weekly volume trend for confirmed bike lane blocking incidents
+-- Weekly volume trend for bike lane blocking incidents (Confirmed + Possible
+-- combined - previously this only counted Confirmed despite the dashboard
+-- section being labeled "Confirmed + Possible", fixed here). Also carries
+-- avg/median hours-to-close per week, to see whether response time is
+-- improving or getting worse over the observation window, not just what it
+-- is right now.
 CREATE OR REPLACE VIEW v_kpi_bike_lane_weekly_trend AS
 SELECT
     date_trunc('week', requested_datetime) AS week_start,
     count(*) AS total_requests,
     count(*) FILTER (WHERE status = 'open') AS open_requests,
     count(*) FILTER (WHERE status = 'closed') AS closed_requests,
-    round(100.0 * count(*) FILTER (WHERE status = 'closed') / NULLIF(count(*), 0), 1) AS pct_closed
+    round(100.0 * count(*) FILTER (WHERE status = 'closed') / NULLIF(count(*), 0), 1) AS pct_closed,
+    round((avg(extract(epoch FROM (updated_datetime - requested_datetime)))
+        FILTER (WHERE status = 'closed') / 3600.0)::numeric, 1) AS avg_hours_to_close,
+    round((percentile_cont(0.5) WITHIN GROUP (
+        ORDER BY extract(epoch FROM (updated_datetime - requested_datetime))
+    ) FILTER (WHERE status = 'closed') / 3600.0)::numeric, 1) AS median_hours_to_close
 FROM service_requests
-WHERE is_bike_lane_blocking
+WHERE (is_bike_lane_blocking OR is_possible_bike_lane_blocking)
   AND requested_datetime IS NOT NULL
 GROUP BY 1
 ORDER BY 1;
+
+-- Time-of-day / day-of-week pattern for bike lane blocking incidents
+-- (Confirmed + Possible). Local time (America/New_York, the DB session's
+-- timezone) - rush-hour patterns only mean something in local time.
+CREATE OR REPLACE VIEW v_kpi_bike_lane_hour_of_day AS
+SELECT
+    extract(hour FROM requested_datetime)::int AS hour_of_day,
+    count(*) AS request_count
+FROM service_requests
+WHERE (is_bike_lane_blocking OR is_possible_bike_lane_blocking)
+  AND requested_datetime IS NOT NULL
+GROUP BY 1
+ORDER BY 1;
+
+CREATE OR REPLACE VIEW v_kpi_bike_lane_day_of_week AS
+SELECT
+    extract(dow FROM requested_datetime)::int AS day_num,  -- 0=Sunday .. 6=Saturday
+    to_char(requested_datetime, 'Dy') AS day_name,
+    count(*) AS request_count
+FROM service_requests
+WHERE (is_bike_lane_blocking OR is_possible_bike_lane_blocking)
+  AND requested_datetime IS NOT NULL
+GROUP BY 1, 2
+ORDER BY 1;
+
+-- Chronic locations: streets hit repeatedly across many separate weeks, not
+-- just high-volume streets. A street with 50 incidents in one bad week reads
+-- differently than a street with 50 incidents spread across 20 different
+-- weeks - the latter is a sustained, ongoing failure at that specific spot.
+CREATE OR REPLACE VIEW v_kpi_chronic_locations AS
+SELECT
+    sr.nearest_bike_lane_street AS street,
+    count(*) AS total_incidents,
+    count(DISTINCT date_trunc('week', sr.requested_datetime)) AS distinct_weeks,
+    min(sr.requested_datetime) AS first_seen,
+    max(sr.requested_datetime) AS last_seen
+FROM service_requests sr
+WHERE (sr.is_bike_lane_blocking OR sr.is_possible_bike_lane_blocking)
+  AND sr.nearest_bike_lane_street IS NOT NULL
+  AND sr.nearest_bike_lane_street != 'Unknown'
+GROUP BY sr.nearest_bike_lane_street
+HAVING count(DISTINCT date_trunc('week', sr.requested_datetime)) >= 4
+ORDER BY distinct_weeks DESC, total_incidents DESC;

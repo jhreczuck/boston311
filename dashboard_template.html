@@ -1,4 +1,15 @@
 <title>Bike Lanes, Blocked — Boston 311 Data</title>
+<meta property="og:title" content="Bike Lanes, Blocked — Boston 311 Data">
+<meta property="og:description" content="Every 311 complaint about a vehicle in a Boston bike lane, cross-checked two independent ways and compared against how the city handles everything else in the same queue.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://jhreczuck.github.io/boston311-dashboard/">
+<meta property="og:image" content="https://jhreczuck.github.io/boston311-dashboard/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Bike Lanes, Blocked — Boston 311 Data">
+<meta name="twitter:description" content="Every 311 complaint about a vehicle in a Boston bike lane, cross-checked two independent ways and compared against how the city handles everything else in the same queue.">
+<meta name="twitter:image" content="https://jhreczuck.github.io/boston311-dashboard/og-image.png">
 <style>
   @font-face {
     font-family: "Oswald";
@@ -376,6 +387,46 @@
         <div class="trend-line-label">Share closed, per week</div>
         <svg id="trend-line" width="100%" height="70" style="display:block;"></svg>
       </div>
+      <div class="trend-line-wrap">
+        <div class="trend-line-label">Median hours to close, per week (closed cases only)</div>
+        <svg id="trend-line-hours" width="100%" height="70" style="display:block;"></svg>
+      </div>
+    </div>
+  </section>
+
+  <section id="time-pattern">
+    <div class="section-head">
+      <div>
+        <h2>When it happens</h2>
+        <p class="section-note">Confirmed + Possible bike lane blocking incidents, local time.</p>
+      </div>
+    </div>
+    <div class="compare-grid" style="grid-template-columns: 1fr 1fr;">
+      <div class="trend-wrap">
+        <div class="trend-line-label" style="margin-bottom:12px;">By hour of day</div>
+        <div class="trend-bars" id="hour-bars" style="height:110px;"></div>
+        <div class="trend-axis" id="hour-axis"></div>
+      </div>
+      <div class="trend-wrap">
+        <div class="trend-line-label" style="margin-bottom:12px;">By day of week</div>
+        <div class="trend-bars" id="dow-bars" style="height:110px;"></div>
+        <div class="trend-axis" id="dow-axis"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="chronic">
+    <div class="section-head">
+      <div>
+        <h2>Chronic locations</h2>
+        <p class="section-note">Streets hit repeatedly across many separate weeks — not just high volume, but a sustained, ongoing pattern at that specific spot (4+ distinct weeks with at least one incident). Top 25 shown; download the CSV for the full list.</p>
+      </div>
+      <div class="btn-row">
+        <button class="btn" data-csv="chronic_locations">Download CSV</button>
+      </div>
+    </div>
+    <div class="table-scroll">
+      <table id="chronic-table"></table>
     </div>
   </section>
 
@@ -636,29 +687,76 @@ document.getElementById("download-json").addEventListener("click", () => {
     tooltip(el, `Week of ${new Date(el.dataset.week).toLocaleDateString()}: ${el.dataset.total} requests, ${el.dataset.closed} closed`);
   });
 
-  // pct_closed line
-  const svg = document.getElementById("trend-line");
+  drawWeeklyLine("trend-line", rows, r => r.pct_closed, 0, 100, [0,25,50,75,100],
+    (r) => `Week of ${new Date(r.week_start).toLocaleDateString()}: ${pct(r.pct_closed)} closed`);
+
+  const maxHours = Math.max(...rows.map(r => r.median_hours_to_close || 0), 1);
+  drawWeeklyLine("trend-line-hours", rows, r => r.median_hours_to_close, 0, maxHours, null,
+    (r) => `Week of ${new Date(r.week_start).toLocaleDateString()}: ${r.median_hours_to_close != null ? fmt1(r.median_hours_to_close) + "h median" : "no closures"}`);
+})();
+
+// Generic weekly line chart - shared by the pct_closed and hours-to-close lines
+function drawWeeklyLine(svgId, rows, valueFn, minV, maxV, gridValues, tooltipFn) {
+  const svg = document.getElementById(svgId);
   const w = 1000, h = 70, pad = 6;
   const n = rows.length;
   const stepX = (w - pad*2) / (n - 1 || 1);
-  const points = rows.map((r, i) => {
-    const x = pad + i * stepX;
-    const y = pad + (1 - r.pct_closed/100) * (h - pad*2);
-    return [x, y];
+  const scaleY = (v) => pad + (1 - (v - minV) / (maxV - minV || 1)) * (h - pad*2);
+  const points = rows.map((r, i) => [pad + i * stepX, valueFn(r) == null ? null : scaleY(valueFn(r))]);
+  const segments = [];
+  let current = [];
+  points.forEach((p, i) => {
+    if (p[1] == null) { if (current.length) segments.push(current); current = []; return; }
+    current.push(p);
+    if (i === points.length - 1) segments.push(current);
   });
-  const path = points.map((p,i) => (i===0?"M":"L") + p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ");
-  const gridLines = [0,25,50,75,100].map(v => {
-    const y = pad + (1 - v/100) * (h - pad*2);
+  const path = segments.map(seg => seg.map((p,i) => (i===0?"M":"L") + p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ")).join(" ");
+  const gridLines = (gridValues || []).map(v => {
+    const y = scaleY(v);
     return `<line x1="${pad}" y1="${y}" x2="${w-pad}" y2="${y}" stroke="var(--grid)" stroke-width="1"/>`;
   }).join("");
-  const dots = points.map((p,i) => `<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="var(--accent)" data-i="${i}"></circle>`).join("");
+  const dots = points.map((p,i) => p[1] == null ? "" : `<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="var(--accent)" data-i="${i}"></circle>`).join("");
   svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
   svg.innerHTML = gridLines + `<path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2"/>` + dots;
+  svg.querySelectorAll("circle").forEach(c => tooltip(c, tooltipFn(rows[+c.dataset.i])));
+}
 
-  svg.querySelectorAll("circle").forEach(c => {
-    const r = rows[+c.dataset.i];
-    tooltip(c, `Week of ${new Date(r.week_start).toLocaleDateString()}: ${pct(r.pct_closed)} closed`);
-  });
+// ---- When it happens: hour of day / day of week ----
+(function renderTimePattern() {
+  const hourRows = DATA.bike_lane_hour_of_day.rows;
+  const maxHour = Math.max(...hourRows.map(r => r.request_count));
+  document.getElementById("hour-bars").innerHTML = hourRows.map(r => {
+    const h = Math.max(2, (r.request_count / maxHour) * 100);
+    return `<div class="trend-bar-col"><div class="trend-bar" style="height:${h}%;" data-label="${r.hour_of_day}:00" data-count="${r.request_count}"></div></div>`;
+  }).join("");
+  document.getElementById("hour-axis").innerHTML = hourRows.map(r =>
+    `<span>${r.hour_of_day % 3 === 0 ? r.hour_of_day : ""}</span>`).join("");
+  document.querySelectorAll("#hour-bars .trend-bar").forEach(el =>
+    tooltip(el, `${el.dataset.label}: ${el.dataset.count} incidents`));
+
+  const dowRows = DATA.bike_lane_day_of_week.rows;
+  const maxDow = Math.max(...dowRows.map(r => r.request_count));
+  document.getElementById("dow-bars").innerHTML = dowRows.map(r => {
+    const h = Math.max(2, (r.request_count / maxDow) * 100);
+    return `<div class="trend-bar-col"><div class="trend-bar" style="height:${h}%;" data-label="${r.day_name}" data-count="${r.request_count}"></div></div>`;
+  }).join("");
+  document.getElementById("dow-axis").innerHTML = dowRows.map(r => `<span>${r.day_name}</span>`).join("");
+  document.querySelectorAll("#dow-bars .trend-bar").forEach(el =>
+    tooltip(el, `${el.dataset.label}: ${el.dataset.count} incidents`));
+})();
+
+// ---- Chronic locations ----
+(function renderChronicTable() {
+  const rows = DATA.chronic_locations.rows.slice(0, 25);
+  const thead = `<thead><tr><th>Street</th><th class="num">Distinct weeks</th><th class="num">Total incidents</th><th>First seen</th><th>Last seen</th></tr></thead>`;
+  const tbody = "<tbody>" + rows.map(r => `<tr>
+    <td>${r.street}</td>
+    <td class="num">${fmt(r.distinct_weeks)}</td>
+    <td class="num">${fmt(r.total_incidents)}</td>
+    <td>${r.first_seen ? new Date(r.first_seen).toLocaleDateString() : "—"}</td>
+    <td>${r.last_seen ? new Date(r.last_seen).toLocaleDateString() : "—"}</td>
+  </tr>`).join("") + "</tbody>";
+  document.getElementById("chronic-table").innerHTML = thead + tbody;
 })();
 
 // ---- Horizontal bar charts ----
