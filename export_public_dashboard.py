@@ -38,6 +38,7 @@ VIEWS = {
     "bike_lane_day_of_week": "v_kpi_bike_lane_day_of_week",
     "chronic_locations": "v_kpi_chronic_locations",
     "resolution_outcomes": "v_kpi_resolution_outcomes",
+    "recent_enforcement": "v_kpi_recent_enforcement",
 }
 
 # open_backlog is large and long-tail; only the oldest N are useful in a

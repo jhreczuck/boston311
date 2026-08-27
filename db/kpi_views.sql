@@ -33,24 +33,56 @@ ORDER BY sr.requested_datetime DESC;
 -- first match wins. The "moved before...citation" check must come before the
 -- generic ticket/citation check - it mentions "Citation" but means a ticket
 -- was NOT issued, the opposite of what the keyword alone would suggest.
-CREATE OR REPLACE VIEW v_kpi_resolution_outcomes AS
+-- One row per closed, flagged, notated case - the aggregate summary and the
+-- recent-enforcement list both build on this rather than duplicating the CASE.
+CREATE OR REPLACE VIEW v_bike_lane_outcome_detail AS
 SELECT
+    sr.service_request_id,
+    sr.status_notes,
+    sr.updated_datetime,
     CASE
-        WHEN status_notes ~* 'moved before|before.*(ticket|citation)' THEN 'Gone/Cleared'
-        WHEN status_notes ~* '\mtow(ed)?\M' THEN 'Towed'
-        WHEN status_notes ~* 'ticket|citation' THEN 'Ticketed'
-        WHEN status_notes ~* 'all clear|not at (this )?location|cleared? out|has (been )?moved|has moved|car (has )?left|moved along|area (was |is )?clear|bike lane was clear|crosswalk was clear|sidewalk was clear|vehicle(s)? (has |have )?moved|constituent (states|called)|const\. called' THEN 'Gone/Cleared'
-        WHEN status_notes ~* 'wrong case type|private (way|property)|case invalid|call 911|contact 911|police matter|duplicate|not vehicles' THEN 'Not Applicable'
-        WHEN status_notes ~* '^\s*(case )?noted' THEN 'Noted Only'
+        WHEN sr.status_notes ~* 'moved before|before.*(ticket|citation)' THEN 'Gone/Cleared'
+        WHEN sr.status_notes ~* '\mtow(ed)?\M' THEN 'Towed'
+        WHEN sr.status_notes ~* 'ticket|citation' THEN 'Ticketed'
+        WHEN sr.status_notes ~* 'all clear|not at (this )?location|cleared? out|has (been )?moved|has moved|car (has )?left|moved along|area (was |is )?clear|bike lane was clear|crosswalk was clear|sidewalk was clear|vehicle(s)? (has |have )?moved|constituent (states|called)|const\. called' THEN 'Gone/Cleared'
+        WHEN sr.status_notes ~* 'wrong case type|private (way|property)|case invalid|call 911|contact 911|police matter|duplicate|not vehicles' THEN 'Not Applicable'
+        WHEN sr.status_notes ~* '^\s*(case )?noted' THEN 'Noted Only'
         ELSE 'Other'
-    END AS outcome,
-    count(*) AS total
-FROM service_requests
-WHERE status = 'closed'
-  AND (is_bike_lane_blocking OR is_possible_bike_lane_blocking)
-  AND status_notes IS NOT NULL AND trim(status_notes) != ''
+    END AS outcome
+FROM service_requests sr
+WHERE sr.status = 'closed'
+  AND (sr.is_bike_lane_blocking OR sr.is_possible_bike_lane_blocking)
+  AND sr.status_notes IS NOT NULL AND trim(sr.status_notes) != '';
+
+CREATE OR REPLACE VIEW v_kpi_resolution_outcomes AS
+SELECT outcome, count(*) AS total
+FROM v_bike_lane_outcome_detail
 GROUP BY 1
 ORDER BY total DESC;
+
+-- Most recent 10 cases where enforcement actually acted (Ticketed or Towed),
+-- for a "report -> response" style page. Public-safe columns only, same set
+-- as v_public_bike_lane_records.
+CREATE OR REPLACE VIEW v_kpi_recent_enforcement AS
+SELECT
+    sr.service_request_id,
+    sr.service_name,
+    sr.requested_datetime,
+    sr.updated_datetime,
+    sr.address,
+    sr.media_url,
+    sr.nearest_bike_lane_street,
+    sr.is_bike_lane_blocking,
+    sr.is_possible_bike_lane_blocking,
+    COALESCE(stg.neighborhood, trim(split_part(sr.address, ',', 2))) AS neighborhood,
+    od.outcome,
+    od.status_notes
+FROM v_bike_lane_outcome_detail od
+JOIN service_requests sr ON sr.service_request_id = od.service_request_id
+LEFT JOIN stg_boston_311 stg ON stg.case_enquiry_id = sr.service_request_id
+WHERE od.outcome IN ('Ticketed', 'Towed')
+ORDER BY od.updated_datetime DESC
+LIMIT 10;
 
 -- Hand-curated government/police/transit vehicle incidents (see
 -- government_vehicle_incidents for the methodology note). One row per

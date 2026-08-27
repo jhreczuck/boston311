@@ -1,0 +1,147 @@
+<title>Bike Lanes, Blocked — Report to Response</title>
+<meta property="og:title" content="Report to Response">
+<meta property="og:description" content="The most recent 311 bike lane blocking reports where the city actually acted — tickets and tows, straight from the public record.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://jhreczuck.github.io/boston311-dashboard/results.html">
+<meta property="og:image" content="https://jhreczuck.github.io/boston311-dashboard/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Report to Response">
+<meta name="twitter:description" content="The most recent 311 bike lane blocking reports where the city actually acted — tickets and tows, straight from the public record.">
+<meta name="twitter:image" content="https://jhreczuck.github.io/boston311-dashboard/og-image.png">
+<style>
+  @font-face {
+    font-family: "Oswald";
+    src: url(data:font/ttf;base64,__FONT_B64__) format("truetype-variations");
+    font-weight: 200 700;
+    font-display: swap;
+  }
+
+  :root {
+    color-scheme: light;
+    --bg: #f4f3ee; --surface: #ffffff; --surface-2: #eeece4;
+    --ink: #0b0b0b; --ink-2: #52514e; --ink-muted: #898781;
+    --border: rgba(11,11,11,0.10);
+    --accent: #1baf7a; --accent-ink: #0b3d29;
+    --tow: #d0691f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --bg: #13150f; --surface: #1b1d17; --surface-2: #22241d;
+      --ink: #ffffff; --ink-2: #c3c2b7; --ink-muted: #8f8d86;
+      --border: rgba(255,255,255,0.10);
+      --accent: #199e70; --accent-ink: #bdf3da;
+      --tow: #e4863b;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #13150f; --surface: #1b1d17; --surface-2: #22241d;
+    --ink: #ffffff; --ink-2: #c3c2b7; --ink-muted: #8f8d86;
+    --border: rgba(255,255,255,0.10);
+    --accent: #199e70; --accent-ink: #bdf3da;
+    --tow: #e4863b;
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --bg: #f4f3ee; --surface: #ffffff; --surface-2: #eeece4;
+    --ink: #0b0b0b; --ink-2: #52514e; --ink-muted: #898781;
+    --border: rgba(11,11,11,0.10);
+    --accent: #1baf7a; --accent-ink: #0b3d29;
+    --tow: #d0691f;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font: 15px/1.55 -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 0 24px 80px; }
+  h1, .eyebrow { font-family: "Oswald", -apple-system, sans-serif; }
+
+  .masthead { padding: 40px 0 26px; border-bottom: 3px solid var(--accent); }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.14em; font-size: 12.5px; font-weight: 600; color: var(--accent); margin: 0 0 10px; }
+  h1 { font-size: clamp(30px, 5.4vw, 50px); font-weight: 600; letter-spacing: -0.01em; line-height: 1.04; margin: 0 0 14px; }
+  .dek { font-size: 16px; color: var(--ink-2); max-width: 60ch; margin: 0 0 18px; }
+  .back-link { font-size: 13px; color: var(--ink-2); text-decoration: none; border: 1px solid var(--border); border-radius: 7px; padding: 7px 13px; background: var(--surface); display: inline-flex; }
+  .back-link:hover { background: var(--surface-2); }
+  .source-note { font-size: 12.5px; color: var(--ink-muted); margin: 18px 0 0; }
+  .source-note a { color: var(--ink-2); }
+
+  .list { display: flex; flex-direction: column; gap: 14px; padding-top: 28px; }
+  .card { display: grid; grid-template-columns: 140px 1fr; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--surface); }
+  @media (max-width: 560px) { .card { grid-template-columns: 100px 1fr; } }
+  .card-photo { position: relative; background: var(--surface-2); aspect-ratio: 1; }
+  .card-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .card-photo.empty::after { content: "No photo"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--ink-muted); text-align: center; padding: 8px; }
+  .card-body { padding: 14px 18px; min-width: 0; }
+  .card-top { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+  .outcome-badge { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 3px 9px; border-radius: 20px; color: #06231a; background: var(--accent); }
+  .outcome-badge.towed { background: var(--tow); color: #2b1400; }
+  .card-date { font-size: 12.5px; color: var(--ink-muted); }
+  .card-street { font-size: 17px; font-weight: 600; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .card-neigh { font-size: 12.5px; color: var(--ink-muted); margin: 0 0 8px; }
+  .card-note { font-size: 13.5px; color: var(--ink-2); margin: 0 0 8px; line-height: 1.5; }
+  .card-link { font-size: 12.5px; color: var(--accent); text-decoration: none; }
+  .card-link:hover { text-decoration: underline; }
+
+  footer { padding: 40px 0 20px; font-size: 13px; color: var(--ink-muted); }
+  footer a { color: var(--ink-2); }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <div class="masthead">
+    <p class="eyebrow">Boston Open Data · 311 Service Requests</p>
+    <h1>Report to Response</h1>
+    <p class="dek">Bike lane blocking reports don't just sit in a queue — enforcement acts on plenty of them. Here are the 10 most recent Confirmed + Possible cases the city itself closed as ticketed or towed, straight from its own closure notes.</p>
+    <a class="back-link" href="./index.html">← Back to dashboard</a>
+    <p class="source-note">Everything on this page is generated directly from Boston's Open311 API. <a href="https://github.com/jhreczuck/boston311" target="_blank" rel="noopener">SQL, source code, and methodology are open source</a>.</p>
+  </div>
+
+  <div class="list" id="list"></div>
+
+  <footer>Data: Boston Open311 API. Case notes are the city's own text, unedited.</footer>
+</div>
+
+<script>
+const DATA = __DATA_JSON__;
+
+function fmtDate(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) +
+    " · " + d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+}
+
+function render() {
+  const rows = DATA.recent_enforcement.rows;
+  document.getElementById("list").innerHTML = rows.map(r => {
+    const photo = r.media_url
+      ? `<div class="card-photo"><img src="${r.media_url}" loading="lazy" alt=""></div>`
+      : `<div class="card-photo empty"></div>`;
+    const badgeClass = r.outcome === "Towed" ? "outcome-badge towed" : "outcome-badge";
+    const street = r.nearest_bike_lane_street || (r.address || "").split(",")[0];
+    return `<div class="card">
+      ${photo}
+      <div class="card-body">
+        <div class="card-top">
+          <span class="${badgeClass}">${r.outcome}</span>
+          <span class="card-date">${fmtDate(r.requested_datetime)}</span>
+        </div>
+        <p class="card-street">${street}</p>
+        <p class="card-neigh">${r.neighborhood || ""}</p>
+        <p class="card-note">${(r.status_notes || "").replace(/</g, "&lt;")}</p>
+        <a class="card-link" href="https://311.boston.gov/tickets/${r.service_request_id}" target="_blank" rel="noopener">View case #${r.service_request_id} →</a>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+render();
+</script>

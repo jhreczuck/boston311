@@ -30,6 +30,7 @@ dashboard.html
 map.html
 government-vehicles.html
 photos.html
+results.html
 og-image.png
 
 # Local-only HTTP client (bot-detection workaround) - see its own docstring
