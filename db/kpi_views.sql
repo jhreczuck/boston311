@@ -61,8 +61,11 @@ GROUP BY 1
 ORDER BY total DESC;
 
 -- Most recent 10 cases where enforcement actually acted (Ticketed or Towed),
--- for a "report -> response" style page. Public-safe columns only, same set
--- as v_public_bike_lane_records.
+-- for a "report -> response" style page. Confirmed only (the complaint's own
+-- text names a bike lane) - Possible is geo-proximity-only and can catch
+-- things that aren't actually bike lane blocking (a hydrant, resident
+-- parking) just because they're near a mapped lane. Public-safe columns
+-- only, same set as v_public_bike_lane_records.
 CREATE OR REPLACE VIEW v_kpi_recent_enforcement AS
 SELECT
     sr.service_request_id,
@@ -81,6 +84,7 @@ FROM v_bike_lane_outcome_detail od
 JOIN service_requests sr ON sr.service_request_id = od.service_request_id
 LEFT JOIN stg_boston_311 stg ON stg.case_enquiry_id = sr.service_request_id
 WHERE od.outcome IN ('Ticketed', 'Towed')
+  AND sr.is_bike_lane_blocking
 ORDER BY od.updated_datetime DESC
 LIMIT 10;
 
