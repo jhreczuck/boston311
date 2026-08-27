@@ -18,12 +18,39 @@ SELECT
     round(sr.distance_to_bike_lane_m::numeric, 1) AS distance_to_bike_lane_m,
     sr.nearest_bike_lane_street,
     sr.media_url,
+    sr.status_notes,
     COALESCE(stg.neighborhood, trim(split_part(sr.address, ',', 2))) AS neighborhood,
     CASE WHEN stg.ward IS NOT NULL THEN 'Ward ' || regexp_replace(stg.ward, '\D', '', 'g')::int END AS ward
 FROM service_requests sr
 LEFT JOIN stg_boston_311 stg ON stg.case_enquiry_id = sr.service_request_id
 WHERE coalesce(sr.is_bike_lane_blocking, false) OR coalesce(sr.is_possible_bike_lane_blocking, false)
 ORDER BY sr.requested_datetime DESC;
+
+-- Resolution outcome categorization from status_notes (the city's own closure
+-- text, from the live API - highly templated, so a regex classifier is much
+-- lower-risk here than the free-form-citizen-text classification used for
+-- government vehicle incidents). Priority-ordered: checked top to bottom,
+-- first match wins. The "moved before...citation" check must come before the
+-- generic ticket/citation check - it mentions "Citation" but means a ticket
+-- was NOT issued, the opposite of what the keyword alone would suggest.
+CREATE OR REPLACE VIEW v_kpi_resolution_outcomes AS
+SELECT
+    CASE
+        WHEN status_notes ~* 'moved before|before.*(ticket|citation)' THEN 'Gone/Cleared'
+        WHEN status_notes ~* '\mtow(ed)?\M' THEN 'Towed'
+        WHEN status_notes ~* 'ticket|citation' THEN 'Ticketed'
+        WHEN status_notes ~* 'all clear|not at (this )?location|cleared? out|has (been )?moved|has moved|car (has )?left|moved along|area (was |is )?clear|bike lane was clear|crosswalk was clear|sidewalk was clear|vehicle(s)? (has |have )?moved|constituent (states|called)|const\. called' THEN 'Gone/Cleared'
+        WHEN status_notes ~* 'wrong case type|private (way|property)|case invalid|call 911|contact 911|police matter|duplicate|not vehicles' THEN 'Not Applicable'
+        WHEN status_notes ~* '^\s*(case )?noted' THEN 'Noted Only'
+        ELSE 'Other'
+    END AS outcome,
+    count(*) AS total
+FROM service_requests
+WHERE status = 'closed'
+  AND (is_bike_lane_blocking OR is_possible_bike_lane_blocking)
+  AND status_notes IS NOT NULL AND trim(status_notes) != ''
+GROUP BY 1
+ORDER BY total DESC;
 
 -- Hand-curated government/police/transit vehicle incidents (see
 -- government_vehicle_incidents for the methodology note). One row per
