@@ -288,6 +288,10 @@
   .detail-resolution { font-size: 13px; color: var(--ink-2); margin: 0 0 8px; line-height: 1.5; }
   .detail-resolution.detail-muted { color: var(--ink-muted); font-style: italic; }
   .detail-address { font-size: 12.5px; color: var(--ink-muted); margin: 0; }
+  .expand-cell { text-align: center; }
+  .expand-chevron { display: inline-block; color: var(--ink-muted); font-size: 13px; transition: transform 0.12s; }
+  #raw-table tr.raw-row:hover .expand-chevron { color: var(--accent); }
+  #raw-table tr.raw-row-expanded .expand-chevron { transform: rotate(90deg); color: var(--accent); }
   #raw-table th { position: relative; }
   .col-resize-handle {
     position: absolute; top: 0; right: -4px; width: 8px; height: 100%;
@@ -522,7 +526,7 @@
     <div class="section-head">
       <div>
         <h2>Every flagged record</h2>
-        <p class="section-note">All Confirmed + Possible bike lane blocking requests. Click a column to sort; search filters street, neighborhood, and description.</p>
+        <p class="section-note">All Confirmed + Possible bike lane blocking requests. Click a row (▸) to expand full details, including the resolution note. Click a column header to sort; search filters street, neighborhood, and description.</p>
       </div>
       <div class="btn-row">
         <button class="btn btn-accent" data-csv="bike_lane_records">Download full CSV</button>
@@ -861,10 +865,11 @@ function renderHBar(containerId, rows, labelKey, valueKey, color, max_n) {
     { key: "requested_datetime", label: "Requested" },
     { key: "distance_to_bike_lane_m", label: "Dist (m)", num: true },
     { key: "description", label: "Description" },
+    { key: "expand", label: "" },
   ];
   // Column widths (px) - manually resizable via drag handles, kept here so
   // a resize survives re-renders (sort/search/paginate) instead of resetting.
-  const colWidths = [52, 92, 64, 96, 76, 130, 84, 80, 58, 360];
+  const colWidths = [52, 92, 64, 96, 76, 130, 84, 80, 58, 340, 24];
   const MIN_COL_WIDTH = 36;
 
   function apply() {
@@ -917,6 +922,7 @@ function renderHBar(containerId, rows, labelKey, valueKey, color, max_n) {
         <td>${r.requested_datetime ? new Date(r.requested_datetime).toLocaleDateString() : "—"}</td>
         <td class="num">${r.distance_to_bike_lane_m != null ? r.distance_to_bike_lane_m : "—"}</td>
         <td class="wrap-cell" title="${(r.description||"").replace(/"/g,'&quot;')}">${desc}</td>
+        <td class="expand-cell"><span class="expand-chevron">▸</span></td>
       </tr>
       <tr class="raw-detail-row" data-detail-for="${r.service_request_id}" hidden>
         <td colspan="${cols.length}">
