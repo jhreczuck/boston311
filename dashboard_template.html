@@ -255,7 +255,10 @@
   .trend-wrap { background: var(--chart-surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
   .trend-bars { display: flex; align-items: flex-end; gap: 4px; height: 140px; margin-bottom: 6px; }
   .trend-bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; position: relative; }
-  .trend-bar { width: 100%; max-width: 34px; border-radius: 3px 3px 0 0; background: var(--accent); }
+  .trend-bar { width: 100%; max-width: 34px; border-radius: 3px 3px 0 0; background: var(--accent); position: relative; overflow: hidden; }
+  .trend-bar-closed { position: absolute; left: 0; right: 0; bottom: 0; background: var(--status-critical, #d03b3b); pointer-events: none; }
+  .trend-legend { display: flex; gap: 16px; font-size: 12px; color: var(--ink-muted); margin-bottom: 10px; }
+  .trend-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
   .trend-axis { display: flex; gap: 4px; }
   .trend-axis span { flex: 1; text-align: center; font-size: 10.5px; color: var(--ink-muted); }
   .trend-line-wrap { margin-top: 22px; }
@@ -395,6 +398,7 @@
       </div>
     </div>
     <div class="trend-wrap">
+      <div class="trend-legend"><span><i style="background:var(--accent)"></i>Reports</span><span><i style="background:var(--status-critical,#d03b3b)"></i>Closed</span></div>
       <div class="trend-bars" id="trend-bars"></div>
       <div class="trend-axis" id="trend-axis"></div>
       <div class="trend-line-wrap">
@@ -707,7 +711,9 @@ document.getElementById("download-json").addEventListener("click", () => {
 
   barsEl.innerHTML = rows.map(r => {
     const h = Math.max(2, (r.total_requests / maxTotal) * 100);
-    return `<div class="trend-bar-col"><div class="trend-bar" style="height:${h}%;" data-week="${r.week_start}" data-total="${r.total_requests}" data-closed="${r.closed_requests}"></div></div>`;
+    const closedPct = r.total_requests ? (r.closed_requests / r.total_requests) * 100 : 0;
+    const closedFill = r.closed_requests ? `<div class="trend-bar-closed" style="height:${Math.max(closedPct, 3)}%;"></div>` : "";
+    return `<div class="trend-bar-col"><div class="trend-bar" style="height:${h}%;" data-week="${r.week_start}" data-total="${r.total_requests}" data-closed="${r.closed_requests}">${closedFill}</div></div>`;
   }).join("");
   axisEl.innerHTML = rows.map(r => `<span>${new Date(r.week_start).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</span>`).join("");
 
